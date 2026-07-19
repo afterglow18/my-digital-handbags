@@ -381,54 +381,42 @@ export default function WardrobePage() {
             }}
           />
 
-          {/* Cover "SAVED DESIGNS" text on the background image */}
-          <div
-            style={{
-              position: "absolute",
-              top:    pY(ir, 0.961),
-              left:   pX(ir, 0.30),
-              width:  pW(ir, 0.40),
-              height: pH(ir, 0.030),
-              background: "#F5EDE3",
-              zIndex: 26,
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* Replacement "Save Designs" button over the heart icon + text area */}
+          {/* Circle button covering the heart icon + "SAVED DESIGNS" text */}
           <button
             onClick={() => { setSaveName(""); setIsSaveOpen(true); }}
             aria-label="Save current look"
             style={{
               position: "absolute",
-              top:    pY(ir, 0.9466) - pW(ir, 0.0625),
-              left:   pX(ir, 0.54)  - pW(ir, 0.0625),
-              width:  pW(ir, 0.125), height: pW(ir, 0.125),
-              borderRadius: "50%", zIndex: 27,
-              background: "transparent", border: "none",
-              cursor: "pointer", padding: 0,
+              top:  pY(ir, 0.958) - pW(ir, 0.155),
+              left: pX(ir, 0.50)  - pW(ir, 0.155),
+              width:  pW(ir, 0.31),
+              height: pW(ir, 0.31),
+              borderRadius: "50%",
+              zIndex: 27,
+              background: "#F5EDE3",
+              border: "1.5px solid #C4876A",
+              cursor: "pointer",
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.10)",
             }}
-          />
-
-          {/* "Save Designs" label replacing the covered text */}
-          <div
-            style={{
-              position: "absolute",
-              top:    pY(ir, 0.962),
-              left:   pX(ir, 0.30),
-              width:  pW(ir, 0.40),
-              textAlign: "center",
+          >
+            <span style={{
               fontFamily: "var(--font-body, sans-serif)",
-              fontSize: Math.max(8, pW(ir, 0.028)),
-              letterSpacing: "0.10em",
+              fontSize: Math.max(7, pW(ir, 0.026)),
+              letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#8B4258",
-              fontWeight: 600,
-              pointerEvents: "none",
-              zIndex: 28,
+              color: "#7A3048",
+              fontWeight: 700,
+              lineHeight: 1,
               userSelect: "none",
-            }}
-          >Save Designs</div>
+            }}>Save</span>
+            <span style={{ fontSize: Math.max(10, pW(ir, 0.038)), lineHeight: 1, userSelect: "none" }}>🤍</span>
+          </button>
         </>
       )}
 
