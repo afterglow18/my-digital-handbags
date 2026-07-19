@@ -185,10 +185,16 @@ export default function WardrobePage() {
   const itemsLeft = isFree ? Math.max(0, FREE_ITEM_LIMIT - totalItems) : null;
   const ready     = ir.width > 0;
 
-  // Consistent photo height = smallest section minus the heading strip.
-  const labelH          = ready ? pH(ir, LABEL_FRAC) : 0;
-  const minSecH         = ready ? Math.min(...LM.rows.map(lm => pH(ir, lm.shelfY - lm.sectionTop))) : 0;
-  const consistentPhotoH = Math.max(0, minSecH - labelH);
+  // Per-row photo height — fills each niche from below the heading down to the next shelf surface.
+  const labelH = ready ? pH(ir, LABEL_FRAC) : 0;
+  const rowBottoms = [
+    LM.rows[1].sectionTop,
+    LM.rows[2].sectionTop,
+    LM.rows[3].sectionTop,
+    LM.saveAreaY,
+  ] as const;
+  const rowPhotoH = (rowIdx: number) =>
+    ready ? Math.max(0, pH(ir, rowBottoms[rowIdx] - LM.rows[rowIdx].sectionTop - LABEL_FRAC)) : 0;
   // Use container-relative insets so the carousel always stays inside the
   // visible viewport regardless of how much the cover-scaled image overflows.
   const INSET   = ready ? ir.containerW * 0.10 : 0;   // 10% padding each side
@@ -326,7 +332,7 @@ export default function WardrobePage() {
                     style={{
                       position: "absolute",
                       top: secTop + labelH, left: carLeft,
-                      width: carW, height: consistentPhotoH,
+                      width: carW, height: rowPhotoH(rowIdx),
                       zIndex: 10, overflow: "visible",
                     }}
                   >
@@ -335,7 +341,7 @@ export default function WardrobePage() {
                       items={items}
                       onCenteredItem={setCentredHandlers[key]}
                       onItemTap={handleItemTap}
-                      maxPhotoH={consistentPhotoH}
+                      maxPhotoH={rowPhotoH(rowIdx)}
                     />
                   </div>
                 )}

@@ -211,10 +211,16 @@ export default function GeneratePage() {
 
   const canSave = Object.keys(centred).length > 0;
 
-  // Consistent photo height = smallest section minus the heading strip.
-  const labelH           = ready ? pH(ir, LABEL_FRAC) : 0;
-  const minSecH          = ready ? Math.min(...LM.rows.map(lm => pH(ir, lm.shelfY - lm.sectionTop))) : 0;
-  const consistentPhotoH = Math.max(0, minSecH - labelH);
+  // Per-row photo height — fills each niche from below the heading down to the next shelf surface.
+  const labelH = ready ? pH(ir, LABEL_FRAC) : 0;
+  const rowBottoms = [
+    LM.rows[1].sectionTop,
+    LM.rows[2].sectionTop,
+    LM.rows[3].sectionTop,
+    LM.barY,
+  ] as const;
+  const rowPhotoH = (rowIdx: number) =>
+    ready ? Math.max(0, pH(ir, rowBottoms[rowIdx] - LM.rows[rowIdx].sectionTop - LABEL_FRAC)) : 0;
   const INSET   = ready ? ir.containerW * 0.10 : 0;
   const carLeft = ready ? INSET : 0;
   const carW    = ready ? ir.containerW - INSET * 2 : 0;
@@ -311,14 +317,14 @@ export default function GeneratePage() {
                     <div style={{
                       position: "absolute",
                       top: secTop + labelH, left: carLeft,
-                      width: carW, height: consistentPhotoH,
+                      width: carW, height: rowPhotoH(rowIdx),
                       zIndex: 10, overflow: "visible",
                     }}>
                       <ClosetRow
                         ref={rowRefs[key]}
                         items={items}
                         onCenteredItem={setCentredHandlers[key]}
-                        maxPhotoH={consistentPhotoH}
+                        maxPhotoH={rowPhotoH(rowIdx)}
                         disableSwipe
                       />
                     </div>
