@@ -41,7 +41,7 @@ const LM = {
     { sectionTop: 0.455, shelfY: 0.635 },
     { sectionTop: 0.63, shelfY: 0.81 },
   ],
-  barY:   0.85,
+  barY:   0.88,
   barBot: 1.00,
 } as const;
 
