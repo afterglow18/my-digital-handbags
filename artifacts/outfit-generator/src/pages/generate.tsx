@@ -211,11 +211,14 @@ export default function GeneratePage() {
 
   const canSave = Object.keys(centred).length > 0;
 
-  // Consistent photo height — smallest niche so all rows match.
+  // Row 0 (Totes) fills its own niche; rows 1–3 use the smallest niche for consistency.
   const labelH        = ready ? pH(ir, LABEL_FRAC) : 0;
   const minSecH       = ready ? Math.min(...LM.rows.map(lm => pH(ir, lm.shelfY - lm.sectionTop))) : 0;
   const consistentPhotoH = Math.max(0, minSecH - labelH);
-  const rowPhotoH = (_rowIdx: number) => consistentPhotoH;
+  const rowPhotoH = (rowIdx: number) =>
+    rowIdx === 0
+      ? Math.max(0, pH(ir, LM.rows[0].shelfY - LM.rows[0].sectionTop) - labelH)
+      : consistentPhotoH;
   const INSET   = ready ? ir.containerW * 0.18 : 0; // 18% padding each side — inside shelf walls
   const carLeft = ready ? INSET : 0;
   const carW    = ready ? ir.containerW - INSET * 2 : 0;
