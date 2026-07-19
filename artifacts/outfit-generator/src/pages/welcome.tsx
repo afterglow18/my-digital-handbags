@@ -13,11 +13,11 @@ import { motion, AnimatePresence, useAnimation } from "framer-motion";
 
 type Phase = "splash" | "unzipping" | "zooming" | "hero" | "exiting";
 
-const UNZIP_MS = 1500;
-const ZOOM_MS  = 950;
-const HERO_MS  = 800;
-const HOLD_MS  = 400;
-const EXIT_MS  = 700;
+const UNZIP_MS = 900;
+const ZOOM_MS  = 550;
+const HERO_MS  = 450;
+const HOLD_MS  = 200;
+const EXIT_MS  = 450;
 
 const GOLD    = "#d4af37";
 const GOLD_LT = "#f0d080";
