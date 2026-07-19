@@ -319,21 +319,9 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
                   zIndex: isCenter ? 2 : 1,
                 }}
               >
-                {/* Background — fixed size, never scales so width is consistent across all rows */}
-                <div
-                  style={{
-                    position: "absolute",
-                    width: photoW,
-                    height: photoH,
-                    borderRadius: "12px",
-                    background: bg,
-                    boxShadow: shadow,
-                    opacity,
-                    pointerEvents: "none",
-                    transition: transitioning ? CARD_TRANSITION : "none",
-                  }}
-                />
-                {/* Photo — scales for centre card, background stays still */}
+                {/* Photo card — scales, fades, and recolours as it moves
+                    to/from centre.  transform-origin centre keeps the card
+                    visually anchored in its slot. */}
                 <div
                   style={{
                     width: photoW,
@@ -341,6 +329,8 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
                     flexShrink: 0,
                     overflow: "hidden",
                     borderRadius: "12px",
+                    background: bg,
+                    boxShadow: shadow,
                     position: "relative",
                     pointerEvents: "none",
                     opacity,
