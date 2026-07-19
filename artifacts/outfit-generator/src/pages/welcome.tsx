@@ -1,7 +1,7 @@
 /**
  * WelcomePage — Front door swings open to reveal the hero image.
  *
- * SPLASH   : Sage-green front door fills screen, "My Digital Home" above it.
+ * SPLASH   : Sage-green front door fills screen, "My Digital Handbags" above it.
  * OPENING  : Door swings open left on hinge (CSS 3D rotateY).
  * HOLD     : Hero image fully visible.
  * EXITING  : Whole screen fades out → onEnter().
@@ -51,7 +51,7 @@ export default function WelcomePage({ onEnter }: Props) {
       {/* ── Hero image — always behind the door ── */}
       <motion.img
         src="/hero-home.jpg"
-        alt="My Digital Home"
+        alt="My Digital Handbags"
         draggable={false}
         initial={{ opacity: 0 }}
         animate={{ opacity: phase === "splash" ? 0 : 1 }}
@@ -196,7 +196,7 @@ export default function WelcomePage({ onEnter }: Props) {
               textShadow: "0 2px 16px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.9)",
               lineHeight: 1.1, textAlign: "center",
             }}>
-              My Digital<br />Home
+              My Digital<br />Handbags
             </div>
           </motion.div>
         )}
@@ -237,7 +237,7 @@ export default function WelcomePage({ onEnter }: Props) {
                 <circle cx="13.5" cy="10" r="1.5" fill="white"/>
                 <line x1="9" y1="1" x2="9" y2="19" stroke="white" strokeWidth="0.8" strokeDasharray="2 2"/>
               </svg>
-              Enter My Digital Home
+              Enter My Digital Handbags
             </div>
             <div style={{
               marginTop: 12, fontSize: 10, letterSpacing: "0.22em",

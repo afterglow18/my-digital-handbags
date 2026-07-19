@@ -113,7 +113,7 @@ export function UpgradeSheet({ onClose }: Props) {
           boxShadow: "0 3px 12px rgba(0,0,0,0.5), 0 0 0 2px rgba(212,175,55,0.5)",
           filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))",
         }}>
-          <img src="/app-icon.jpg" alt="My Digital Home"
+          <img src="/app-icon.jpg" alt="My Digital Handbags"
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         </div>
         <button

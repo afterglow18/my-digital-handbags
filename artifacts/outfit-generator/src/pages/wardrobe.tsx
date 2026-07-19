@@ -211,7 +211,7 @@ export default function WardrobePage() {
       {/* Background image — centred via CSS transform; iOS clips transform overflow correctly */}
       <img
         src="/bg-shelves.png"
-        alt="My Digital Home"
+        alt="My Digital Handbags"
         style={{
           position: "absolute",
           top:       ready ? ir.top   : 0,
@@ -252,7 +252,7 @@ export default function WardrobePage() {
               textShadow: "0 1px 4px rgba(255,255,255,0.3)",
               lineHeight: 1,
             }}>
-              My Digital Home
+              My Digital Handbags
             </span>
           </div>
 

@@ -43,9 +43,9 @@ async function exportNative(json: string, filename: string): Promise<void> {
     const { uri } = await Filesystem.getUri({ path, directory: Directory.Cache });
 
     await Share.share({
-      title: 'My Digital Home Backup',
+      title: 'My Digital Handbags Backup',
       url: uri,
-      dialogTitle: 'Save or share your vanity backup',
+      dialogTitle: 'Save or share your handbags backup',
     });
   } catch (err) {
     console.error('Native export failed, falling back to web:', err);

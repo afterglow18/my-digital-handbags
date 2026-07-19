@@ -1,5 +1,5 @@
 /**
- * GeneratePage — "Spin It" screen for My Digital Home.
+ * GeneratePage — "Spin It" screen for My Digital Handbags.
  * Local-first: data comes from IndexedDB via useListClothing / useSaveOutfit.
  */
 
@@ -234,7 +234,7 @@ export default function GeneratePage() {
       {/* Background image — centred via CSS transform; iOS clips transform overflow correctly */}
       <img
         src="/bg-shelves.png"
-        alt="My Digital Home"
+        alt="My Digital Handbags"
         style={{
           position: "absolute",
           top:       ready ? ir.top   : 0,
@@ -273,7 +273,7 @@ export default function GeneratePage() {
             textShadow: "0 1px 4px rgba(255,255,255,0.3)",
             lineHeight: 1,
           }}>
-            My Digital Home
+            My Digital Handbags
           </span>
         </div>
       )}
