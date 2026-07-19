@@ -108,6 +108,15 @@ workflows:
 
       - name: Re-apply provisioning profiles after cap sync
         script: |
+          PBXPROJ="artifacts/outfit-generator/ios/App/App.xcodeproj/project.pbxproj"
+
+          # cap sync resets signing to Automatic — force Manual so use-profiles works
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
+
+          # Ensure the team is set (cap sync may leave it blank)
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 2A78MFVCJS;/g' "$PBXPROJ"
+
+          # Stamp the provisioning profile fetched by Codemagic ios_signing
           xcode-project use-profiles \
             --project artifacts/outfit-generator/ios/App/App.xcodeproj
 
