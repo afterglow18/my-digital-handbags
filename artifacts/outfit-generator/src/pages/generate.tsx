@@ -221,7 +221,7 @@ export default function GeneratePage() {
   ] as const;
   const rowPhotoH = (rowIdx: number) =>
     ready ? Math.max(0, pH(ir, rowBottoms[rowIdx] - LM.rows[rowIdx].sectionTop - LABEL_FRAC)) : 0;
-  const INSET   = ready ? ir.containerW * 0.10 : 0;
+  const INSET   = ready ? ir.containerW * 0.18 : 0; // 18% padding each side — inside shelf walls
   const carLeft = ready ? INSET : 0;
   const carW    = ready ? ir.containerW - INSET * 2 : 0;
 
