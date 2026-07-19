@@ -381,7 +381,21 @@ export default function WardrobePage() {
             }}
           />
 
-          {/* Invisible tap zone over the save element on the background image */}
+          {/* Cover "SAVED DESIGNS" text on the background image */}
+          <div
+            style={{
+              position: "absolute",
+              top:    pY(ir, 0.961),
+              left:   pX(ir, 0.30),
+              width:  pW(ir, 0.40),
+              height: pH(ir, 0.030),
+              background: "#F5EDE3",
+              zIndex: 26,
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Replacement "Save Designs" button over the heart icon + text area */}
           <button
             onClick={() => { setSaveName(""); setIsSaveOpen(true); }}
             aria-label="Save current look"
@@ -390,11 +404,31 @@ export default function WardrobePage() {
               top:    pY(ir, 0.9466) - pW(ir, 0.0625),
               left:   pX(ir, 0.54)  - pW(ir, 0.0625),
               width:  pW(ir, 0.125), height: pW(ir, 0.125),
-              borderRadius: "50%", zIndex: 26,
+              borderRadius: "50%", zIndex: 27,
               background: "transparent", border: "none",
               cursor: "pointer", padding: 0,
             }}
           />
+
+          {/* "Save Designs" label replacing the covered text */}
+          <div
+            style={{
+              position: "absolute",
+              top:    pY(ir, 0.962),
+              left:   pX(ir, 0.30),
+              width:  pW(ir, 0.40),
+              textAlign: "center",
+              fontFamily: "var(--font-body, sans-serif)",
+              fontSize: Math.max(8, pW(ir, 0.028)),
+              letterSpacing: "0.10em",
+              textTransform: "uppercase",
+              color: "#8B4258",
+              fontWeight: 600,
+              pointerEvents: "none",
+              zIndex: 28,
+              userSelect: "none",
+            }}
+          >Save Designs</div>
         </>
       )}
 
