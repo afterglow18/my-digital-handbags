@@ -109,7 +109,9 @@ workflows:
       - name: Re-apply provisioning profiles after cap sync
         script: |
           xcode-project use-profiles \
-            --project artifacts/outfit-generator/ios/App/App.xcodeproj
+            --project artifacts/outfit-generator/ios/App/App.xcodeproj \
+            --profile-name "$PROFILE_NAME" \
+            --bundle-id "$BUNDLE_ID"
 
       - name: Resolve Swift Package dependencies
         script: |
