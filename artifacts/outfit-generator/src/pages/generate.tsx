@@ -211,16 +211,11 @@ export default function GeneratePage() {
 
   const canSave = Object.keys(centred).length > 0;
 
-  // Per-row photo height — fills each niche from below the heading down to the next shelf surface.
-  const labelH = ready ? pH(ir, LABEL_FRAC) : 0;
-  const rowBottoms = [
-    LM.rows[1].sectionTop,
-    LM.rows[2].sectionTop,
-    LM.rows[3].sectionTop,
-    LM.rows[3].shelfY,
-  ] as const;
-  const rowPhotoH = (rowIdx: number) =>
-    ready ? Math.max(0, pH(ir, rowBottoms[rowIdx] - LM.rows[rowIdx].sectionTop - LABEL_FRAC)) : 0;
+  // Consistent photo height — smallest niche so all rows match.
+  const labelH        = ready ? pH(ir, LABEL_FRAC) : 0;
+  const minSecH       = ready ? Math.min(...LM.rows.map(lm => pH(ir, lm.shelfY - lm.sectionTop))) : 0;
+  const consistentPhotoH = Math.max(0, minSecH - labelH);
+  const rowPhotoH = (_rowIdx: number) => consistentPhotoH;
   const INSET   = ready ? ir.containerW * 0.18 : 0; // 18% padding each side — inside shelf walls
   const carLeft = ready ? INSET : 0;
   const carW    = ready ? ir.containerW - INSET * 2 : 0;
