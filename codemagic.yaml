@@ -17,12 +17,16 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mydigitalhandbags.app
+      groups:
+        - signing
       vars:
         BUNDLE_ID: com.mydigitalhandbags.app
         XCODE_PROJECT: artifacts/outfit-generator/ios/App/App.xcodeproj
         XCODE_SCHEME: App
         COREPACK_ENABLE_STRICT: "0"
         COREPACK_DEFAULT_TO_LATEST: "0"
+        APP_STORE_CONNECT_KEY_IDENTIFIER: 67K2T48W7Y
+        APP_STORE_CONNECT_ISSUER_ID: 66d4ce13-148d-4d6b-bab8-f1d0d8441a1e
 
     scripts:
       - name: Install dependencies
