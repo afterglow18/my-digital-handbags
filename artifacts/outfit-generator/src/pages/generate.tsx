@@ -367,7 +367,7 @@ export default function GeneratePage() {
               )}
             </AnimatePresence>
 
-            {/* Empty vanity prompt */}
+            {/* Empty handbags prompt */}
             {!hasItems && (
               <div style={{
                 position: "absolute", top: "46%", left: "50%",
@@ -383,7 +383,7 @@ export default function GeneratePage() {
                   fontFamily: "var(--font-display)", margin: 0,
                 }}>Your shelves are empty</p>
                 <p style={{ fontSize: 11, color: "#9a5060", marginTop: 5, lineHeight: 1.5 }}>
-                  Add furniture, décor, organization items or supplies in the Home tab first.
+                  Add handbags in the Handbags tab first.
                 </p>
               </div>
             )}

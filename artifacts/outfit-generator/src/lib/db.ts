@@ -24,7 +24,7 @@ type OutfitItemRow = {
   position: number;
 };
 
-interface VanitySchema extends DBSchema {
+interface HandbagsSchema extends DBSchema {
   clothing: {
     key: string;
     value: ClothingItem;
@@ -44,11 +44,11 @@ interface VanitySchema extends DBSchema {
 
 // ── Singleton connection ───────────────────────────────────────────────────────
 
-let _dbPromise: Promise<IDBPDatabase<VanitySchema>> | null = null;
+let _dbPromise: Promise<IDBPDatabase<HandbagsSchema>> | null = null;
 
-function getDB(): Promise<IDBPDatabase<VanitySchema>> {
+function getDB(): Promise<IDBPDatabase<HandbagsSchema>> {
   if (!_dbPromise) {
-    _dbPromise = openDB<VanitySchema>('vanity-db', 1, {
+    _dbPromise = openDB<HandbagsSchema>('handbags-db', 1, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('clothing')) {
           const s = db.createObjectStore('clothing', { keyPath: 'id' });
@@ -171,7 +171,7 @@ export async function dbGetWardrobeStats(): Promise<WardrobeStats> {
 
 async function hydrateOutfit(
   row: OutfitRow,
-  db: IDBPDatabase<VanitySchema>,
+  db: IDBPDatabase<HandbagsSchema>,
 ): Promise<SavedOutfit> {
   const ois = await db.getAllFromIndex('outfit_items', 'by-outfit', row.id);
   ois.sort((a, b) => a.position - b.position);

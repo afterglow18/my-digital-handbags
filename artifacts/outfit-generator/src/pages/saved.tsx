@@ -405,7 +405,7 @@ export default function SavedPage() {
           </div>
           <h3 className="font-display font-bold text-xl mb-2">No looks saved yet.</h3>
           <p className="text-sm font-medium text-muted-foreground">
-            Head to your Home, spin the slots, and save looks you love.
+            Head to your Handbags, spin the slots, and save looks you love.
           </p>
         </div>
       )}
