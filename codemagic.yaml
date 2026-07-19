@@ -110,15 +110,17 @@ workflows:
         script: |
           PBXPROJ="artifacts/outfit-generator/ios/App/App.xcodeproj/project.pbxproj"
 
-          # cap sync resets signing to Automatic — force Manual so use-profiles works
+          # cap sync resets signing to Automatic — force Manual
           sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
 
           # Ensure the team is set (cap sync may leave it blank)
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = 2A78MFVCJS;/g' "$PBXPROJ"
+          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = '"$TEAM_ID"';/g' "$PBXPROJ"
 
-          # Stamp the provisioning profile fetched by Codemagic ios_signing
-          xcode-project use-profiles \
-            --project artifacts/outfit-generator/ios/App/App.xcodeproj
+          # Stamp profile specifier directly — don't rely on use-profiles to find it
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "'"$PROFILE_NAME"'";/g' "$PBXPROJ"
+
+          echo "Signing settings after patch:"
+          grep -E "CODE_SIGN_STYLE|DEVELOPMENT_TEAM|PROVISIONING_PROFILE" "$PBXPROJ" | sort -u
 
       - name: Resolve Swift Package dependencies
         script: |
@@ -130,9 +132,27 @@ workflows:
 
       - name: Build IPA
         script: |
-          xcode-project build-ipa \
-            --workspace "artifacts/outfit-generator/ios/App/App.xcodeproj/project.xcworkspace" \
-            --scheme "$XCODE_SCHEME"
+          ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/xcarchive/App.xcarchive"
+          IPA_DIR="$CM_BUILD_DIR/build/ios/ipa"
+          mkdir -p "$IPA_DIR"
+
+          xcodebuild \
+            -workspace "artifacts/outfit-generator/ios/App/App.xcodeproj/project.xcworkspace" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            archive
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$IPA_DIR" \
+            -exportOptionsPlist "app-store/ExportOptions.plist"
 
       - name: Upload to TestFlight
         script: |
