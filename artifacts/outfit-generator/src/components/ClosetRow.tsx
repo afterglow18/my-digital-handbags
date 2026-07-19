@@ -32,8 +32,8 @@ import React, {
 const SCALE_CTR   = 1.12;            // center card is 12% larger
 const SCALE_SIDE  = 0.88;            // side cards are 88% of center
 const OPACITY_SIDE = 0.72;           // side cards fade to 72%
-const BG_CENTER   = "rgba(0, 0, 0, 1)"; // pure black
-const SHADOW_CTR  = "0 4px 20px rgba(32,4,10,0.70), 0 1px 6px rgba(0,0,0,0.55)";
+const BG_CENTER   = "rgba(78, 10, 20, 0.98)"; // deep rug-red, slightly darkened
+const SHADOW_CTR  = "0 4px 20px rgba(78,10,20,0.70), 0 1px 6px rgba(0,0,0,0.55)";
 import type { ClothingItem } from "@/types/local";
 import { getImageUrl } from "@/lib/utils";
 
@@ -287,9 +287,9 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
               const p = Math.max(0, Math.min(1, 1 - distSlots));
               scale   = SCALE_SIDE  + (SCALE_CTR   - SCALE_SIDE)   * p;
               opacity = OPACITY_SIDE + (1           - OPACITY_SIDE) * p;
-              bg      = p > 0.5 ? `rgba(0, 0, 0, ${((p - 0.5) * 2).toFixed(3)})` : "transparent";
+              bg      = p > 0.5 ? `rgba(78, 10, 20, ${((p - 0.5) * 2).toFixed(3)})` : "transparent";
               shadow  = p > 0.05
-                ? `0 ${(4 * p).toFixed(1)}px ${(16 * p).toFixed(1)}px rgba(0,0,0,${(0.40 * p).toFixed(3)})`
+                ? `0 ${(4 * p).toFixed(1)}px ${(16 * p).toFixed(1)}px rgba(78,10,20,${(0.40 * p).toFixed(3)})`
                 : "none";
             }
 
