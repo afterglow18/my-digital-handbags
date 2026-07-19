@@ -304,7 +304,7 @@ export default function GeneratePage() {
                     pointerEvents: "none",
                   }}>
                     <span style={{
-                      fontSize: Math.max(9, labelH * 0.55),
+                      fontSize: Math.max(8, labelH * 0.38),
                       fontWeight: 300, letterSpacing: "0.22em",
                       color: "#500d1a",
                       fontFamily: "var(--font-display)", textTransform: "uppercase",
