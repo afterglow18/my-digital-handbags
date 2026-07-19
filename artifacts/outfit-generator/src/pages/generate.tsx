@@ -217,7 +217,7 @@ export default function GeneratePage() {
     LM.rows[1].sectionTop,
     LM.rows[2].sectionTop,
     LM.rows[3].sectionTop,
-    LM.barY,
+    LM.rows[3].shelfY,
   ] as const;
   const rowPhotoH = (rowIdx: number) =>
     ready ? Math.max(0, pH(ir, rowBottoms[rowIdx] - LM.rows[rowIdx].sectionTop - LABEL_FRAC)) : 0;
