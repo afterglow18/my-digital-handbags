@@ -387,10 +387,10 @@ export default function WardrobePage() {
             aria-label="Save current look"
             style={{
               position: "absolute",
-              top:  pY(ir, 0.958) - pW(ir, 0.155),
-              left: pX(ir, 0.50)  - pW(ir, 0.155),
-              width:  pW(ir, 0.31),
-              height: pW(ir, 0.31),
+              top:  pY(ir, 0.958) - pW(ir, 0.068),
+              left: pX(ir, 0.50)  - pW(ir, 0.068),
+              width:  pW(ir, 0.136),
+              height: pW(ir, 0.136),
               borderRadius: "50%",
               zIndex: 27,
               background: "#F5EDE3",
