@@ -324,7 +324,7 @@ export default function WardrobePage() {
                     data-testid={`row-${key}`}
                     style={{
                       position: "absolute",
-                      top: secTop + labelH, left: carLeft,
+                      top: secTop + labelH - (rowIdx >= 2 ? pH(ir, 0.012) : 0), left: carLeft,
                       width: carW, height: rowPhotoH(rowIdx),
                       zIndex: 10, overflow: "hidden", borderRadius: 2,
                     }}
