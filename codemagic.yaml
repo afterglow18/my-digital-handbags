@@ -1,67 +1,45 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Codemagic CI/CD — My Digital Home iOS build
+# Codemagic CI/CD — My Digital Handbags iOS build
 # ─────────────────────────────────────────────────────────────────────────────
-#
-# REQUIRED — Codemagic → your app → Environment variables
-# Group "signing":
-#   APP_STORE_CONNECT_KEY_IDENTIFIER   FNNDY69F2J
-#   APP_STORE_CONNECT_ISSUER_ID        66d4ce13-148d-4d6b-bab8-f1d0d8441a1e
-#   APP_STORE_CONNECT_PRIVATE_KEY      Full .p8 file contents (mark Secure)
-#
-# Group "build_env":
-#   VITE_API_BASE_URL                  Your deployed API URL
 
 workflows:
-  ios-app-store:
-    name: iOS App Store Release
-    max_build_duration: 60
+  ios-release:
+    name: iOS Release – My Digital Handbags
     instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: codemagic  # set up in Codemagic dashboard → Integrations
 
     environment:
+      xcode: latest
+      node: "22"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.mydigitalhandbags.app
-      xcode: latest
-      node: 22
-      groups:
-        - signing
       vars:
-        XCODE_SCHEME: App
-        XCODE_PROJECT: artifacts/outfit-generator/ios/App/App.xcodeproj
-        XCODE_WORKSPACE: artifacts/outfit-generator/ios/App/App.xcodeproj/project.xcworkspace
-        COREPACK_ENABLE_STRICT: "0"
         BUNDLE_ID: com.mydigitalhandbags.app
-        TEAM_ID: 2A78MFVCJS
-        PROFILE_NAME: My Digital Handbags
-        APP_STORE_CONNECT_KEY_IDENTIFIER: 67K2T48W7Y
-        APP_STORE_CONNECT_ISSUER_ID: 66d4ce13-148d-4d6b-bab8-f1d0d8441a1e
+        XCODE_PROJECT: artifacts/outfit-generator/ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        COREPACK_ENABLE_STRICT: "0"
+        COREPACK_DEFAULT_TO_LATEST: "0"
 
     scripts:
-      - name: Install pnpm and dependencies
+      - name: Install dependencies
         script: |
           corepack disable || true
           npm install -g pnpm@9 --force
           pnpm install --no-frozen-lockfile
 
-      - name: Build web assets
+      - name: Build web + sync Capacitor
         script: |
-          cd artifacts/outfit-generator
-          pnpm vite build --config vite.capacitor.config.ts
-
-      - name: Capacitor add iOS and sync
-        script: |
-          cd artifacts/outfit-generator
-          rm -rf ios
-          npx cap add ios
-          npx cap sync ios
+          pnpm --filter @workspace/outfit-generator run build:ios
 
       - name: Add export compliance to Info.plist
         script: |
           PLIST="artifacts/outfit-generator/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST" || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$PLIST"
-          echo "Export compliance set:"
-          /usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$PLIST"
 
       - name: Inject app icon
         script: |
@@ -85,85 +63,28 @@ workflows:
           }
           EOF
 
-      - name: Share App scheme
+      - name: Set up code signing
         script: |
-          SCHEMES_DIR="$XCODE_PROJECT/xcshareddata/xcschemes"
-          mkdir -p "$SCHEMES_DIR"
-          # If Capacitor created a shared scheme already, leave it; otherwise copy from userdata
-          if [ ! -f "$SCHEMES_DIR/App.xcscheme" ]; then
-            USER_SCHEME=$(find "$XCODE_PROJECT/xcuserdata" -name "App.xcscheme" 2>/dev/null | head -1)
-            if [ -n "$USER_SCHEME" ]; then
-              cp "$USER_SCHEME" "$SCHEMES_DIR/App.xcscheme"
-            fi
-          fi
-          echo "Shared schemes:"
-          ls -la "$SCHEMES_DIR"
-          echo "Available targets/schemes:"
-          xcodebuild -list -project "$XCODE_PROJECT"
+          xcode-project use-profiles
 
-      - name: Set build number
+      - name: Increment build number
         script: |
           cd artifacts/outfit-generator/ios/App
-          agvtool new-version -all $BUILD_NUMBER
-
-      - name: Re-apply provisioning profiles after cap sync
-        script: |
-          PBXPROJ="artifacts/outfit-generator/ios/App/App.xcodeproj/project.pbxproj"
-
-          # cap sync resets signing to Automatic — force Manual
-          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' "$PBXPROJ"
-
-          # Ensure the team is set (cap sync may leave it blank)
-          sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = '"$TEAM_ID"';/g' "$PBXPROJ"
-
-          # Stamp profile specifier directly — don't rely on use-profiles to find it
-          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = "";/PROVISIONING_PROFILE_SPECIFIER = "'"$PROFILE_NAME"'";/g' "$PBXPROJ"
-
-          echo "Signing settings after patch:"
-          grep -E "CODE_SIGN_STYLE|DEVELOPMENT_TEAM|PROVISIONING_PROFILE" "$PBXPROJ" | sort -u
-
-      - name: Resolve Swift Package dependencies
-        script: |
-          cd artifacts/outfit-generator/ios/App
-          xcodebuild \
-            -resolvePackageDependencies \
-            -workspace App.xcodeproj/project.xcworkspace \
-            -scheme App
+          agvtool new-version -all $(date +%s)
 
       - name: Build IPA
         script: |
-          ARCHIVE_PATH="$CM_BUILD_DIR/build/ios/xcarchive/App.xcarchive"
-          IPA_DIR="$CM_BUILD_DIR/build/ios/ipa"
-          mkdir -p "$IPA_DIR"
-
-          xcodebuild \
-            -workspace "artifacts/outfit-generator/ios/App/App.xcodeproj/project.xcworkspace" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath "$ARCHIVE_PATH" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            archive
-
-          xcodebuild \
-            -exportArchive \
-            -archivePath "$ARCHIVE_PATH" \
-            -exportPath "$IPA_DIR" \
-            -exportOptionsPlist "app-store/ExportOptions.plist"
-
-      - name: Upload to TestFlight
-        script: |
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > /tmp/AuthKey.p8
-          app-store-connect publish \
-            --path $(find $CM_BUILD_DIR/build/ios/ipa -name "*.ipa" | head -1) \
-            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --private-key "@file:/tmp/AuthKey.p8" \
-            --testflight
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
-      - $CM_BUILD_DIR/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false  # flip to true when ready for full App Review
