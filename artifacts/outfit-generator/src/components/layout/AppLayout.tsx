@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Sparkles, Bookmark, UserCircle, Home } from "lucide-react";
+import { Sparkles, Bookmark, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetWardrobeStats } from "@/hooks/useLocalWardrobe";
 
@@ -15,7 +15,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const wardrobeCount = stats?.total ?? undefined;
 
   const navItems = [
-    { href: "/",         label: "Home",  icon: Home,        badge: wardrobeCount },
+    { href: "/",         label: "Handbags",  icon: null,        badge: wardrobeCount },
     { href: "/generate", label: "Generate", icon: Sparkles },
     { href: "/saved",    label: "Saved",    icon: Bookmark },
     { href: "/backup",   label: "Account",  icon: UserCircle },
@@ -48,14 +48,18 @@ export function AppLayout({ children }: AppLayoutProps) {
                           : "bg-transparent border-transparent group-hover:bg-muted group-active:scale-95",
                       )}
                     >
-                      <Icon
-                        className={cn(
-                          "w-6 h-6",
-                          isActive ? "text-black" : "text-muted-foreground",
-                          item.href === "/generate" && isActive ? "animate-pulse" : "",
-                        )}
-                        strokeWidth={isActive ? 2.5 : 2}
-                      />
+                      {Icon ? (
+                        <Icon
+                          className={cn(
+                            "w-6 h-6",
+                            isActive ? "text-black" : "text-muted-foreground",
+                            item.href === "/generate" && isActive ? "animate-pulse" : "",
+                          )}
+                          strokeWidth={isActive ? 2.5 : 2}
+                        />
+                      ) : (
+                        <span className="text-xl leading-none select-none">👜</span>
+                      )}
 
                       {/* Badge */}
                       {item.badge !== undefined && item.badge > 0 && (
