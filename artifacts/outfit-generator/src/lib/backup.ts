@@ -2,7 +2,7 @@
  * Backup service — exports all wardrobe data to a JSON file
  * and imports it back.
  *
- * Format: JSON file (handbags-backup-<date>.json) containing clothing
+ * Format: JSON file (vanity-backup-<date>.json) containing clothing
  * items, outfits, and outfit_items. Images are embedded as data URLs.
  *
  * On native iOS: shares the file via the native share sheet.
@@ -17,7 +17,7 @@ import { Capacitor } from '@capacitor/core';
 export async function exportBackup(): Promise<void> {
   const payload = await dbExportAll();
   const json = JSON.stringify(payload, null, 2);
-  const filename = `handbags-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const filename = `vanity-backup-${new Date().toISOString().slice(0, 10)}.json`;
 
   if (Capacitor.isNativePlatform()) {
     await exportNative(json, filename);
@@ -31,7 +31,7 @@ async function exportNative(json: string, filename: string): Promise<void> {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
     const { Share } = await import('@capacitor/share');
 
-    const path = `handbags-exports/${filename}`;
+    const path = `vanity-exports/${filename}`;
     await Filesystem.writeFile({
       path,
       data: json,
@@ -45,7 +45,7 @@ async function exportNative(json: string, filename: string): Promise<void> {
     await Share.share({
       title: 'My Digital Handbags Backup',
       url: uri,
-      dialogTitle: 'Save or share your handbags backup',
+      dialogTitle: 'Save or share your vanity backup',
     });
   } catch (err) {
     console.error('Native export failed, falling back to web:', err);

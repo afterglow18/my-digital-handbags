@@ -35,10 +35,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  "furniture":    "Furniture",
-  "decor":        "Décor",
-  "organization": "Organization",
-  "supplies":     "Supplies",
+  "totes":              "Totes",
+  "shoulder-bags":      "Shoulder Bags",
+  "crossbody-bags":     "Crossbody Bags",
+  "clutches-wristlets": "Clutches + Wristlets",
 };
 
 const ORDER_KEY = "closet-favorites-order";
@@ -92,10 +92,10 @@ function SortableTile({ item, onTap }: { item: ClothingItem; onTap: (item: Cloth
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-2xl opacity-30">
-              {item.category === "supplies" ? "🧴"
-                : item.category === "organization" ? "📦"
-                : item.category === "decor" ? "🪴"
-                : "🛋️"}
+              {item.category === "clutches-wristlets" ? "👛"
+                : item.category === "crossbody-bags" ? "👜"
+                : item.category === "shoulder-bags" ? "👝"
+                : "🛍️"}
             </span>
           </div>
         )}
@@ -182,7 +182,7 @@ export default function FavoritesPage() {
           </div>
           <h3 className="font-display font-bold text-xl mb-2">No faves yet.</h3>
           <p className="text-sm font-medium text-muted-foreground">
-            Tap any item in your home collection, then tap the ❤️ to save it here.
+            Tap any item in your handbag collection, then tap the ❤️ to save it here.
           </p>
         </div>
       )}

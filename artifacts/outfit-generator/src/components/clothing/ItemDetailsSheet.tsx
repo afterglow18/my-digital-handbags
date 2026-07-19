@@ -16,7 +16,7 @@ import { getImageUrl } from "@/lib/utils";
 
 const SEASON_OPTIONS   = ["", "Spring", "Summer", "Fall", "Winter", "All Season"];
 const OCCASION_OPTIONS = ["", "Casual", "Work", "Formal", "Sport", "Special Event"];
-const CATEGORY_OPTIONS = ["furniture", "decor", "organization", "supplies"];
+const CATEGORY_OPTIONS = ["totes", "shoulder-bags", "crossbody-bags", "clutches-wristlets"];
 
 function Field({
   label, value, onChange, placeholder, type = "text",
@@ -302,7 +302,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                        hover:border-red-500 hover:text-red-600 transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            Delete from Handbags Forever
+            Delete from Vanity Forever
           </button>
         ) : (
           <div className="flex gap-2">

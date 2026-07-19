@@ -1,5 +1,5 @@
 /**
- * WardrobePage — handbags-bg.png (1024×1536 PNG)
+ * WardrobePage — vanity-bg.png (1024×1536 PNG)
  * Local-first: data comes from IndexedDB via useListClothing / useSaveOutfit.
  */
 
@@ -26,14 +26,14 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { FREE_ITEM_LIMIT } from "@/types/local";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type RowKey   = "furniture" | "decor" | "organization" | "supplies";
-type Category = "furniture" | "decor" | "organization" | "supplies";
+type RowKey   = "totes" | "shoulder-bags" | "crossbody-bags" | "clutches-wristlets";
+type Category = "totes" | "shoulder-bags" | "crossbody-bags" | "clutches-wristlets";
 
-const ROWS: { key: RowKey; heading: string; btnLabel: string }[] = [
-  { key: "furniture",    heading: "FURNITURE",    btnLabel: "+ ADD FURNITURE"    },
-  { key: "decor",        heading: "DÉCOR",        btnLabel: "+ ADD DÉCOR"        },
-  { key: "organization", heading: "ORGANIZATION", btnLabel: "+ ADD ORGANIZATION" },
-  { key: "supplies",     heading: "SUPPLIES",     btnLabel: "+ ADD SUPPLIES"     },
+const ROWS: { key: RowKey; btnLabel: string }[] = [
+  { key: "totes",              btnLabel: "+ ADD TOTES"              },
+  { key: "shoulder-bags",      btnLabel: "+ ADD SHOULDER BAGS"      },
+  { key: "crossbody-bags",     btnLabel: "+ ADD CROSSBODY BAGS"     },
+  { key: "clutches-wristlets", btnLabel: "+ CLUTCHES & WRISTLETS" },
 ];
 
 // ── Image constants ───────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ const NAV_H = 90;
 // Fraction of image height reserved at the top of every section for the heading.
 const LABEL_FRAC = 0.042;
 
-// Layout markers calibrated for home-bg.png (1086×1448).
+// Layout markers calibrated for handbag-bg.png (1086×1448).
 // All four sections are ~16-18% tall so photos render at the same size.
 // Row 1 → LED + velvet roll; Rows 2-4 → the three open shelf bays.
 const LM = {
@@ -97,10 +97,10 @@ export default function WardrobePage() {
   const ir = useImageRect(containerRef);
 
   const rowRefs: Record<RowKey, RefObject<ClosetRowHandle | null>> = {
-    "furniture":    useRef<ClosetRowHandle | null>(null),
-    "decor":        useRef<ClosetRowHandle | null>(null),
-    "organization": useRef<ClosetRowHandle | null>(null),
-    "supplies":     useRef<ClosetRowHandle | null>(null),
+    "totes":              useRef<ClosetRowHandle | null>(null),
+    "shoulder-bags":      useRef<ClosetRowHandle | null>(null),
+    "crossbody-bags":     useRef<ClosetRowHandle | null>(null),
+    "clutches-wristlets": useRef<ClosetRowHandle | null>(null),
   };
 
   const [centred,       setCentred]       = useState<Partial<Record<RowKey, ClothingItem>>>({});
@@ -113,19 +113,19 @@ export default function WardrobePage() {
 
   const saveOutfit = useSaveOutfit();
 
-  const { data: furniture    = [] } = useListClothing({ category: "furniture"    }, { query: { queryKey: getListClothingQueryKey({ category: "furniture"    }) } });
-  const { data: decor        = [] } = useListClothing({ category: "decor"        }, { query: { queryKey: getListClothingQueryKey({ category: "decor"        }) } });
-  const { data: organization = [] } = useListClothing({ category: "organization" }, { query: { queryKey: getListClothingQueryKey({ category: "organization" }) } });
-  const { data: supplies     = [] } = useListClothing({ category: "supplies"     }, { query: { queryKey: getListClothingQueryKey({ category: "supplies"     }) } });
+  const { data: totes            = [] } = useListClothing({ category: "totes"              }, { query: { queryKey: getListClothingQueryKey({ category: "totes"              }) } });
+  const { data: shoulderBags     = [] } = useListClothing({ category: "shoulder-bags"      }, { query: { queryKey: getListClothingQueryKey({ category: "shoulder-bags"      }) } });
+  const { data: crossbodyBags    = [] } = useListClothing({ category: "crossbody-bags"     }, { query: { queryKey: getListClothingQueryKey({ category: "crossbody-bags"     }) } });
+  const { data: clutchesWristlets = [] } = useListClothing({ category: "clutches-wristlets" }, { query: { queryKey: getListClothingQueryKey({ category: "clutches-wristlets" }) } });
   const { data: outfits = [] } = useListOutfits();
 
   const rowData: Record<RowKey, ClothingItem[]> = {
-    "furniture":    furniture,
-    "decor":        decor,
-    "organization": organization,
-    "supplies":     supplies,
+    "totes":              totes,
+    "shoulder-bags":      shoulderBags,
+    "crossbody-bags":     crossbodyBags,
+    "clutches-wristlets": clutchesWristlets,
   };
-  const totalItems = furniture.length + decor.length + organization.length + supplies.length;
+  const totalItems = totes.length + shoulderBags.length + crossbodyBags.length + clutchesWristlets.length;
 
   const queryClient = useQueryClient();
   const { tier, canAddItem } = useEntitlements();
@@ -134,20 +134,20 @@ export default function WardrobePage() {
     setCentred(prev => {
       const next = { ...prev };
       let changed = false;
-      (["furniture", "decor", "organization", "supplies"] as RowKey[]).forEach(key => {
+      (["totes", "shoulder-bags", "crossbody-bags", "clutches-wristlets"] as RowKey[]).forEach(key => {
         if (rowData[key].length === 0 && next[key] !== undefined) {
           delete next[key]; changed = true;
         }
       });
       return changed ? next : prev;
     });
-  }, [furniture.length, decor.length, organization.length, supplies.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [totes.length, shoulderBags.length, crossbodyBags.length, clutchesWristlets.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setCentredHandlers: Record<RowKey, (item: ClothingItem | null) => void> = {
-    "furniture":    useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "furniture":    item ?? undefined })), []),
-    "decor":        useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "decor":        item ?? undefined })), []),
-    "organization": useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "organization": item ?? undefined })), []),
-    "supplies":     useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "supplies":     item ?? undefined })), []),
+    "totes":              useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "totes":              item ?? undefined })), []),
+    "shoulder-bags":      useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "shoulder-bags":      item ?? undefined })), []),
+    "crossbody-bags":     useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "crossbody-bags":     item ?? undefined })), []),
+    "clutches-wristlets": useCallback((item: ClothingItem | null) => setCentred(p => ({ ...p, "clutches-wristlets": item ?? undefined })), []),
   };
 
   const handleAddClick = useCallback((cat: Category) => {
@@ -155,10 +155,10 @@ export default function WardrobePage() {
   }, [canAddItem, totalItems]);
 
   const addHandlers: Record<RowKey, () => void> = {
-    "furniture":    useCallback(() => handleAddClick("furniture"),    [handleAddClick]),
-    "decor":        useCallback(() => handleAddClick("decor"),        [handleAddClick]),
-    "organization": useCallback(() => handleAddClick("organization"), [handleAddClick]),
-    "supplies":     useCallback(() => handleAddClick("supplies"),     [handleAddClick]),
+    "totes":              useCallback(() => handleAddClick("totes"),              [handleAddClick]),
+    "shoulder-bags":      useCallback(() => handleAddClick("shoulder-bags"),      [handleAddClick]),
+    "crossbody-bags":     useCallback(() => handleAddClick("crossbody-bags"),     [handleAddClick]),
+    "clutches-wristlets": useCallback(() => handleAddClick("clutches-wristlets"), [handleAddClick]),
   };
 
   const handleItemTap = useCallback((item: ClothingItem) => setDetailsItem(item), []);
@@ -210,7 +210,7 @@ export default function WardrobePage() {
     >
       {/* Background image — centred via CSS transform; iOS clips transform overflow correctly */}
       <img
-        src="/bg-shelves.png"
+        src="/closet-bg.png"
         alt="My Digital Handbags"
         style={{
           position: "absolute",
@@ -225,7 +225,7 @@ export default function WardrobePage() {
           zIndex: 0,
         }}
       />
-      {/* Plum tint overlay — shifts tones toward home collection palette */}
+      {/* Plum tint overlay — shifts tones toward handbag collection palette */}
       <div style={{
         position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
         background: "rgba(60, 5, 15, 0.22)",
@@ -276,7 +276,7 @@ export default function WardrobePage() {
                 boxShadow: totalItems >= FREE_ITEM_LIMIT
                   ? "0 0 0 1.5px rgba(200,40,40,0.45)"
                   : "0 0 0 1.5px rgba(92,15,30,0.35)",
-                color: totalItems >= FREE_ITEM_LIMIT ? "#c02020" : "#4F5E3C",
+                color: totalItems >= FREE_ITEM_LIMIT ? "#c02020" : "#5C0F1E",
                 fontWeight: 700, fontSize: 9,
                 letterSpacing: "0.08em", textTransform: "uppercase",
                 whiteSpace: "nowrap", cursor: "pointer",
@@ -288,22 +288,21 @@ export default function WardrobePage() {
           )}
 
           {/* 4 shelf rows — heading pinned to top of section, photos below at consistent height */}
-          {ROWS.map(({ key, heading, btnLabel }, rowIdx) => {
+          {ROWS.map(({ key, btnLabel }, rowIdx) => {
             const lm    = LM.rows[rowIdx];
             const items = rowData[key];
-            const secTop   = pY(ir, lm.sectionTop);
-            const shelfTop = pY(ir, lm.shelfY);
-            const secH     = pH(ir, lm.shelfY - lm.sectionTop);
+            const secTop = pY(ir, lm.sectionTop);
+            const secH   = pH(ir, lm.shelfY - lm.sectionTop);
 
             return (
               <React.Fragment key={key}>
-                {/* Heading — anchored just above the shelf line, tappable to add */}
+                {/* Heading — anchored to top of section, tappable to add */}
                 <button
                   onClick={addHandlers[key]}
                   aria-label={btnLabel}
                   data-testid={`add-btn-${key}`}
                   style={{
-                    position: "absolute", top: shelfTop - labelH, left: carLeft,
+                    position: "absolute", top: secTop, left: carLeft,
                     width: carW, height: labelH,
                     zIndex: 24, background: "none", border: "none", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -312,11 +311,11 @@ export default function WardrobePage() {
                   <span style={{
                     fontSize: Math.max(9, labelH * 0.55),
                     fontWeight: 300, letterSpacing: "0.22em",
-                    color: "#3a4a2a",
+                    color: "#500d1a",
                     fontFamily: "var(--font-display)", textTransform: "uppercase",
-                    textShadow: "0 1px 3px rgba(255,255,255,0.25)",
+                    textShadow: "0 1px 3px rgba(255,255,255,0.15)",
                   }}>
-                    {heading}
+                    {btnLabel}
                   </span>
                 </button>
 
@@ -469,8 +468,8 @@ export default function WardrobePage() {
                     style={{
                       flex: 1, height: 40, borderRadius: 20,
                       border: "2px solid #d4af37",
-                      background: "linear-gradient(to bottom, #6B7A52, #4F5E3C)",
-                      color: "#ffffff", fontWeight: 800, fontSize: 13,
+                      background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                      color: "#f0d080", fontWeight: 800, fontSize: 13,
                       cursor: saveName.trim() ? "pointer" : "default",
                       opacity: saveName.trim() ? 1 : 0.45,
                       fontFamily: "var(--font-display)",

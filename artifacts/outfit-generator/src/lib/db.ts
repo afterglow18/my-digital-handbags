@@ -24,7 +24,7 @@ type OutfitItemRow = {
   position: number;
 };
 
-interface HandbagsSchema extends DBSchema {
+interface VanitySchema extends DBSchema {
   clothing: {
     key: string;
     value: ClothingItem;
@@ -44,11 +44,11 @@ interface HandbagsSchema extends DBSchema {
 
 // ── Singleton connection ───────────────────────────────────────────────────────
 
-let _dbPromise: Promise<IDBPDatabase<HandbagsSchema>> | null = null;
+let _dbPromise: Promise<IDBPDatabase<VanitySchema>> | null = null;
 
-function getDB(): Promise<IDBPDatabase<HandbagsSchema>> {
+function getDB(): Promise<IDBPDatabase<VanitySchema>> {
   if (!_dbPromise) {
-    _dbPromise = openDB<HandbagsSchema>('handbags-db', 1, {
+    _dbPromise = openDB<VanitySchema>('vanity-db', 1, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('clothing')) {
           const s = db.createObjectStore('clothing', { keyPath: 'id' });
@@ -154,7 +154,7 @@ export async function dbGetWardrobeStats(): Promise<WardrobeStats> {
   const allItems = await db.getAll('clothing');
   const allOutfits = await db.getAll('outfits');
 
-  const byCategory = (['furniture', 'decor', 'organization', 'supplies'] as const).map((cat) => ({
+  const byCategory = (['totes', 'shoulder-bags', 'crossbody-bags', 'clutches-wristlets'] as const).map((cat) => ({
     category: cat,
     count: allItems.filter((i) => i.category === cat).length,
   }));
@@ -171,7 +171,7 @@ export async function dbGetWardrobeStats(): Promise<WardrobeStats> {
 
 async function hydrateOutfit(
   row: OutfitRow,
-  db: IDBPDatabase<HandbagsSchema>,
+  db: IDBPDatabase<VanitySchema>,
 ): Promise<SavedOutfit> {
   const ois = await db.getAllFromIndex('outfit_items', 'by-outfit', row.id);
   ois.sort((a, b) => a.position - b.position);

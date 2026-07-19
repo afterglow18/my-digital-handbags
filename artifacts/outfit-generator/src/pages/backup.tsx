@@ -49,8 +49,8 @@ function PurpleButton({
                  text-white transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
                  disabled:opacity-50 disabled:cursor-not-allowed"
       style={{
-        background: disabled ? '#4F5E3C' : 'linear-gradient(to bottom, #6B7A52, #4F5E3C)',
-        border: '2.5px solid #4F5E3C',
+        background: disabled ? '#5C0F1E' : 'linear-gradient(to bottom, #7D1528, #5C0F1E)',
+        border: '2.5px solid #5C0F1E',
         boxShadow: disabled ? 'none' : '3px 3px 0 rgba(0,0,0,0.85)',
         letterSpacing: '0.07em',
       }}
@@ -144,7 +144,7 @@ export default function AccountPage() {
     } catch (err) {
       setErrorMsg(
         err instanceof Error && err.message.includes('Invalid')
-          ? "This file doesn't look like a valid home collection backup."
+          ? "This file doesn't look like a valid handbag collection backup."
           : 'Import failed. The backup file may be corrupted.',
       );
       setBackupStatus('error');
@@ -165,7 +165,7 @@ export default function AccountPage() {
           className="font-black uppercase leading-none"
           style={{ fontSize: 32, letterSpacing: '-0.02em' }}
         >
-          MY DIGITAL HOME
+          MY DIGITAL HANDBAGS
         </h1>
       </div>
 
@@ -222,7 +222,7 @@ export default function AccountPage() {
 
             {/* Description */}
             <p className="text-sm text-black/60 leading-snug">
-              Export your home collection to a JSON file. Save it to iCloud Drive or Files to keep
+              Export your handbag collection to a JSON file. Save it to iCloud Drive or Files to keep
               it safe across phone upgrades.
             </p>
 
@@ -234,7 +234,7 @@ export default function AccountPage() {
 
             {/* Warning */}
             <p className="text-xs font-bold leading-snug" style={{ color: '#C0392B' }}>
-              ⚠️ Deleting the app removes all your home collection data.
+              ⚠️ Deleting the app removes all your handbag collection data.
               Export a backup first to keep it safe.
             </p>
 
@@ -246,7 +246,7 @@ export default function AccountPage() {
 
             {/* Import note */}
             <p className="text-xs text-black/40 text-center leading-snug">
-              Importing replaces your current home collection with the backup.
+              Importing replaces your current handbag collection with the backup.
             </p>
 
             {/* Error message */}
@@ -297,7 +297,7 @@ export default function AccountPage() {
                            transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   background: lockEnabled
-                    ? 'linear-gradient(to bottom, #6B7A52, #4F5E3C)'
+                    ? 'linear-gradient(to bottom, #7D1528, #5C0F1E)'
                     : '#e5e7eb',
                   boxShadow: '2px 2px 0 rgba(0,0,0,0.25)',
                 }}
@@ -330,7 +330,7 @@ export default function AccountPage() {
             </div>
             <p className="text-sm text-black/50 font-medium">Version {APP_VERSION}</p>
             <p className="text-sm text-black/60 leading-snug">
-              Your home collection stays on your device, works offline, and can be backed up with iCloud.
+              Your handbag collection stays on your device, works offline, and can be backed up with iCloud.
             </p>
           </div>
         </Card>
@@ -356,7 +356,7 @@ export default function AccountPage() {
                 Replace everything?
               </h3>
               <p className="text-sm text-black/60 mb-5 leading-snug">
-                This will permanently delete your current home collection and replace it with the backup.
+                This will permanently delete your current handbag collection and replace it with the backup.
                 This cannot be undone.
               </p>
               <div className="flex gap-3">
