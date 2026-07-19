@@ -252,11 +252,6 @@ export default function GeneratePage() {
           zIndex: 0,
         }}
       />
-      {/* Subtle plum overlay — preserves handbag collection warmth */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
-        background: "rgba(50, 5, 15, 0.12)",
-      }} />
 
       {ready && (
         <div
