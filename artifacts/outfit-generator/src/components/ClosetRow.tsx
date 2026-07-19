@@ -29,9 +29,9 @@ import React, {
 } from "react";
 
 // ── Cover Flow visual constants ───────────────────────────────────────────────
-const SCALE_CTR   = 1.0;             // full-width single card — no scale
-const SCALE_SIDE  = 1.0;
-const OPACITY_SIDE = 1.0;
+const SCALE_CTR   = 1.12;            // center card is 12% larger
+const SCALE_SIDE  = 0.88;            // side cards are 88% of center
+const OPACITY_SIDE = 0.72;           // side cards fade to 72%
 const BG_CENTER   = "rgba(78, 10, 20, 0.98)"; // deep rug-red, slightly darkened
 const SHADOW_CTR  = "0 4px 20px rgba(78,10,20,0.70), 0 1px 6px rgba(0,0,0,0.55)";
 import type { ClothingItem } from "@/types/local";
@@ -67,7 +67,7 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
       const measure = () => {
         const el = containerRef.current;
         if (!el) return;
-        setSlotW(el.clientWidth); // 1 card per slot — full shelf width
+        setSlotW(el.clientWidth / 3);
         setContH(el.clientHeight);
       };
       measure();
@@ -192,14 +192,14 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
     }, [centredIdx, onItemTap]);
 
     // ── Geometry ──────────────────────────────────────────────────────────────
-    const baseX  = -centredIdx * slotW;
+    const baseX  = (1 - centredIdx) * slotW;
     const stripX = baseX + dragX;
-    const containerCX = slotW * 0.5; // visual center of the 1-slot viewport
+    const containerCX = slotW * 1.5; // visual center of the 3-slot viewport
 
-    // Only render the centred card + immediate neighbours during swipe
+    // Items beyond ±1.65 slots from center are culled
     const isVisible = (i: number) => {
       const itemCX = i * slotW + slotW / 2 + stripX;
-      return Math.abs(itemCX - containerCX) / slotW <= 1.1;
+      return Math.abs(itemCX - containerCX) / slotW <= 1.65;
     };
 
     const lo = Math.max(0, centredIdx - 2);
