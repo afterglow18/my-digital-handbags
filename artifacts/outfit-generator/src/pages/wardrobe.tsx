@@ -231,11 +231,6 @@ export default function WardrobePage() {
           zIndex: 0,
         }}
       />
-      {/* Plum tint overlay — shifts tones toward handbag collection palette */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none",
-        background: "rgba(60, 5, 15, 0.22)",
-      }} />
 
       {ready && (
         <>
