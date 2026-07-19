@@ -52,7 +52,7 @@ const LM = {
   doorR: 0.88,
   rows: [
     { sectionTop: 0.07, shelfY: 0.27 },
-    { sectionTop: 0.27, shelfY: 0.45 },
+    { sectionTop: 0.27, shelfY: 0.465 },
     { sectionTop: 0.455, shelfY: 0.635 },
     { sectionTop: 0.63, shelfY: 0.81 },
   ],
@@ -192,6 +192,8 @@ export default function WardrobePage() {
   const rowPhotoH = (rowIdx: number) =>
     rowIdx === 0
       ? Math.max(0, pH(ir, LM.rows[0].shelfY - LM.rows[0].sectionTop) - labelH)
+      : rowIdx === 1
+      ? Math.max(0, pH(ir, LM.rows[1].shelfY - LM.rows[1].sectionTop) - labelH)
       : consistentPhotoH;
   // Use container-relative insets so the carousel always stays inside the
   // visible viewport regardless of how much the cover-scaled image overflows.
@@ -324,7 +326,7 @@ export default function WardrobePage() {
                     data-testid={`row-${key}`}
                     style={{
                       position: "absolute",
-                      top: secTop + labelH - (rowIdx >= 2 ? pH(ir, 0.012) : 0), left: carLeft,
+                      top: secTop + labelH - (rowIdx >= 1 ? pH(ir, 0.012) : 0), left: carLeft,
                       width: carW, height: rowPhotoH(rowIdx),
                       zIndex: 10, overflow: "hidden", borderRadius: 2,
                     }}
