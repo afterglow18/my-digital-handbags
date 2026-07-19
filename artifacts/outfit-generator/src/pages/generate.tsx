@@ -311,7 +311,7 @@ export default function GeneratePage() {
                   {items.length > 0 ? (
                     <div style={{
                       position: "absolute",
-                      top: secTop + labelH - (rowIdx >= 1 ? pH(ir, 0.012) : 0), left: carLeft,
+                      top: secTop + labelH - (rowIdx >= 2 ? pH(ir, 0.012) : rowIdx === 1 ? pH(ir, 0.005) : 0), left: carLeft,
                       width: carW, height: rowPhotoH(rowIdx),
                       zIndex: 10, overflow: "hidden", borderRadius: 2,
                     }}>
