@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.mydigitalhome.app',
-  appName: 'My Home',
+  appId: 'com.mydigitalhandbags.app',
+  appName: 'My Handbags',
   webDir: 'dist/public',
 
   // -------------------------------------------------------------------------
@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
     // Allow the WKWebView to scroll; the app manages its own scroll areas
     scrollEnabled: true,
     // Prevents white flash on launch
-    backgroundColor: '#F4D6DD',
+    backgroundColor: '#3C0812',
     // Allow inline media playback (used for wardrobe image previews)
     allowsInlineMediaPlayback: true,
   },
