@@ -15,6 +15,15 @@ const config: CapacitorConfig = {
     backgroundColor: '#3C0812',
     // Allow inline media playback (used for wardrobe image previews)
     allowsInlineMediaPlayback: true,
+    // iOS permission usage descriptions (also set in Info.plist for safety)
+    infoPlist: {
+      NSCameraUsageDescription:
+        'My Handbags uses your camera so you can photograph handbags and add them to your collection.',
+      NSPhotoLibraryUsageDescription:
+        'My Handbags reads your photo library so you can choose handbag photos to add to your collection.',
+      NSPhotoLibraryAddUsageDescription:
+        'My Handbags saves captured photos to your library so you can reuse them later.',
+    },
   },
 
   plugins: {

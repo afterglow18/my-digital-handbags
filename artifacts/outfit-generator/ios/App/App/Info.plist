@@ -6,6 +6,12 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>My Handbags uses Face ID to keep your collection private.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>My Handbags uses your camera so you can photograph handbags and add them to your collection.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>My Handbags reads your photo library so you can choose handbag photos to add to your collection.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>My Handbags saves captured photos to your library so you can reuse them later.</string>
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
