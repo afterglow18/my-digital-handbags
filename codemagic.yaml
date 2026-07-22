@@ -18,7 +18,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.mydigitalhandbags.app
       groups:
-        - signing
+        - signing          # must contain VITE_REVENUECAT_IOS_API_KEY
       vars:
         BUNDLE_ID: com.mydigitalhandbags.app
         XCODE_PROJECT: artifacts/outfit-generator/ios/App/App.xcodeproj
