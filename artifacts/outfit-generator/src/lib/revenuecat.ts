@@ -76,3 +76,17 @@ export async function restoreAndCheck(): Promise<boolean> {
   const { customerInfo } = await Purchases.restorePurchases();
   return ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {});
 }
+
+/**
+ * Check the current customer's entitlements immediately after SDK init and
+ * return true if "unlock" is active.  Call this on every cold launch so
+ * localStorage stays in sync with RevenueCat's source of truth.
+ */
+export async function syncEntitlementOnStartup(): Promise<boolean> {
+  try {
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    return ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {});
+  } catch {
+    return false;
+  }
+}
