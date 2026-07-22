@@ -12,7 +12,7 @@ import type { PurchaseProduct, Tier } from "@/types/local";
 const TEST_KEY = import.meta.env.VITE_REVENUECAT_TEST_API_KEY as string;
 const IOS_KEY  = import.meta.env.VITE_REVENUECAT_IOS_API_KEY  as string;
 
-export const ENTITLEMENT_ID = "unlock";
+export const ENTITLEMENT_ID = "My Digital Handbags Pro";
 
 /** Map app product keys → RevenueCat package identifiers */
 const PACKAGE_ID: Record<PurchaseProduct, string> = {
