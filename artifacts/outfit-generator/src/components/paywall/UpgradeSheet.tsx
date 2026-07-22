@@ -65,14 +65,14 @@ const PLANS: Plan[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function UpgradeSheet({ onClose }: Props) {
-  const { purchase } = useEntitlements();
+  const { purchase, restore } = useEntitlements();
   const [selected, setSelected] = useState<PurchaseProduct>("lifetime");
-  const [status, setStatus]     = useState<"idle" | "pending">("idle");
+  const [status, setStatus]     = useState<"idle" | "pending" | "restoring">("idle");
 
   const selectedPlan = PLANS.find(p => p.id === selected)!;
 
   const handlePurchase = useCallback(async () => {
-    if (status === "pending") return;
+    if (status !== "idle") return;
     setStatus("pending");
     const result: PurchaseResult = await purchase(selected);
     if (result === "success") {
@@ -81,6 +81,17 @@ export function UpgradeSheet({ onClose }: Props) {
       setStatus("idle");
     }
   }, [status, purchase, selected, onClose]);
+
+  const handleRestore = useCallback(async () => {
+    if (status !== "idle") return;
+    setStatus("restoring");
+    const result: PurchaseResult = await restore();
+    if (result === "success") {
+      onClose();
+    } else {
+      setStatus("idle");
+    }
+  }, [status, restore, onClose]);
 
   return (
     <motion.div
@@ -256,6 +267,37 @@ export function UpgradeSheet({ onClose }: Props) {
         >
           Maybe Later
         </button>
+
+        {/* Restore Purchases */}
+        <button
+          onClick={handleRestore}
+          disabled={status !== "idle"}
+          className="text-xs font-semibold text-center transition-colors disabled:opacity-50"
+          style={{ color: ROSE }}
+        >
+          {status === "restoring" ? "Restoring…" : "Restore Purchases"}
+        </button>
+
+        {/* Legal links — required by Apple */}
+        <div className="flex items-center justify-center gap-3 pb-1">
+          <a
+            href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] font-medium text-black/35 underline underline-offset-2"
+          >
+            Terms of Use
+          </a>
+          <span className="text-[10px] text-black/25">·</span>
+          <a
+            href="https://app.notion.com/p/My-Digital-Collection-Privacy-Policy-39682db6065380b19dedcb108d4a0ef4?source=copy_link"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] font-medium text-black/35 underline underline-offset-2"
+          >
+            Privacy Policy
+          </a>
+        </div>
       </div>
     </motion.div>
   );
