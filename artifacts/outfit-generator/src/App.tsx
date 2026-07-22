@@ -16,16 +16,12 @@ import { useBiometricLock } from '@/hooks/useBiometricLock';
 import { BiometricLockContext } from '@/contexts/BiometricLockContext';
 import { AnimatePresence } from 'framer-motion';
 
-// Initialise RevenueCat as early as possible, then sync entitlement status
-// so localStorage stays in sync with RevenueCat's source of truth on every launch.
-try {
-  initRevenueCat();
-  syncEntitlementOnStartup().then((active) => {
-    if (active) setGlobalTier('unlock');
-  }).catch(() => {/* network unavailable — localStorage cache stands */});
-} catch (e) {
-  console.error('[RevenueCat] Init failed:', e);
-}
+// Initialise RevenueCat, wait for the SDK to be fully configured, THEN
+// sync entitlement status so getCustomerInfo() never races against configure().
+initRevenueCat()
+  .then(() => syncEntitlementOnStartup())
+  .then((active) => { if (active) setGlobalTier('unlock'); })
+  .catch((e) => console.error('[RevenueCat] Startup sync failed:', e));
 
 function NotFound() {
   return (

@@ -31,9 +31,11 @@ export const PRODUCT_TIER_MAP: Record<PurchaseProduct, Tier> = {
 };
 
 let _initialised = false;
+let _configurePromise: Promise<void> | null = null;
 
-export function initRevenueCat() {
-  if (_initialised) return;
+/** Initialise RevenueCat and return a promise that resolves when the SDK is ready. */
+export function initRevenueCat(): Promise<void> {
+  if (_initialised && _configurePromise) return _configurePromise;
   _initialised = true;
 
   // In browser / dev → use test store key; in native iOS → use App Store key.
@@ -43,12 +45,15 @@ export function initRevenueCat() {
 
   if (!apiKey) {
     console.warn("[RevenueCat] No API key found — purchases disabled");
-    return;
+    _configurePromise = Promise.resolve();
+    return _configurePromise;
   }
 
-  Purchases.configure({ apiKey })
+  _configurePromise = Purchases.configure({ apiKey })
     .then(() => console.log("[RevenueCat] Configured"))
     .catch((e: unknown) => console.error("[RevenueCat] Configure error:", e));
+
+  return _configurePromise;
 }
 
 /** Fetch the current offering and find the package for a given product. */
