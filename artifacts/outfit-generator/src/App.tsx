@@ -10,18 +10,38 @@ import WelcomePage from './pages/welcome';
 import { LockedScreen } from './components/LockedScreen';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
-import { initRevenueCat, syncEntitlementOnStartup } from '@/lib/revenuecat';
+import { initRevenueCat, syncEntitlementOnStartup, addCustomerInfoListener } from '@/lib/revenuecat';
 import { setGlobalTier } from '@/hooks/useEntitlements';
 import { useBiometricLock } from '@/hooks/useBiometricLock';
 import { BiometricLockContext } from '@/contexts/BiometricLockContext';
 import { AnimatePresence } from 'framer-motion';
 
-// Initialise RevenueCat, wait for the SDK to be fully configured, THEN
-// sync entitlement status so getCustomerInfo() never races against configure().
-initRevenueCat()
-  .then(() => syncEntitlementOnStartup())
-  .then((active) => { if (active) setGlobalTier('unlock'); })
-  .catch((e) => console.error('[RevenueCat] Startup sync failed:', e));
+// ── RevenueCat bootstrap ──────────────────────────────────────────────────────
+//
+// Order of operations:
+//   1. configure() — await so SDK is ready before any API call
+//   2. addCustomerInfoUpdateListener — catches async entitlement pushes
+//      (subscription renewals, cross-device purchases, App Review purchases)
+//   3. syncEntitlementOnStartup — one getCustomerInfo() call to restore the
+//      correct tier if localStorage was cleared (reinstall / WebView reset)
+//
+initRevenueCat().then(() => {
+  // Register a persistent listener.  RevenueCat calls this whenever
+  // CustomerInfo changes — including right after a purchase completes on the
+  // App Store side, which may arrive slightly after purchasePackage() returns.
+  addCustomerInfoListener((hasEntitlement) => {
+    if (hasEntitlement) setGlobalTier('unlock');
+  });
+
+  // Cold-launch sync: restores tier if localStorage was wiped.
+  return syncEntitlementOnStartup();
+}).then((active) => {
+  if (active) setGlobalTier('unlock');
+}).catch((e) => {
+  console.error('[RevenueCat] Startup bootstrap failed:', e);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function NotFound() {
   return (

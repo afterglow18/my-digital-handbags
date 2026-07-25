@@ -1,8 +1,16 @@
 /**
- * useEntitlements — entitlement hook backed by RevenueCat.
+ * useEntitlements — centralised entitlement state backed by RevenueCat.
  *
- * Tier is persisted in localStorage as a fast-read cache and kept in sync
- * after every purchase / restore.  The authoritative source is RevenueCat.
+ * Single source of truth: `_currentTier` (module-level, shared across all
+ * hook instances via useSyncExternalStore).
+ *
+ * Persistence: localStorage key `mdc_tier` is a fast-read cache written on
+ * every tier change.  RevenueCat is always the authoritative source.
+ *
+ * UNLOCK RULE: if Purchases.purchasePackage() returns without throwing,
+ * the App Store completed the transaction → grant access immediately.
+ * Do NOT gate unlock on the entitlement appearing in customerInfo — that
+ * can lag by several seconds and caused Apple review rejections.
  */
 
 import { useCallback, useSyncExternalStore } from 'react';
@@ -15,7 +23,7 @@ import {
   getPackageForProduct,
 } from '@/lib/revenuecat';
 
-// ── Shared external store ─────────────────────────────────────────────────────
+// ── External store (shared across all hook instances) ─────────────────────────
 
 const STORAGE_KEY         = 'mdc_tier';
 const STORAGE_PRODUCT_KEY = 'mdc_active_product';
@@ -24,9 +32,7 @@ function readStoredTier(): Tier {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === 'unlock' || v === 'premium') return v;
-  } catch {
-    // private browsing
-  }
+  } catch { /* private browsing */ }
   return 'free';
 }
 
@@ -50,8 +56,12 @@ function getTierSnapshot(): Tier {
   return _currentTier;
 }
 
-/** Promote the tier globally and persist. Called after a successful purchase. */
+/**
+ * Update the global tier in-memory, notify all React subscribers, and
+ * persist to localStorage.  Call this from anywhere — it is not a hook.
+ */
 export function setGlobalTier(t: Tier, product?: PurchaseProduct): void {
+  if (_currentTier === t && !product) return; // skip no-op unless product changes
   try {
     localStorage.setItem(STORAGE_KEY, t);
     if (product) localStorage.setItem(STORAGE_PRODUCT_KEY, product);
@@ -60,11 +70,9 @@ export function setGlobalTier(t: Tier, product?: PurchaseProduct): void {
   _subscribers.forEach((fn) => fn());
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export type PurchaseResult = 'success' | 'cancelled' | 'unavailable';
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useEntitlements() {
   const tier = useSyncExternalStore(subscribeTier, getTierSnapshot);
@@ -82,6 +90,14 @@ export function useEntitlements() {
     [caps.maxOutfits],
   );
 
+  /**
+   * Initiate an in-app purchase.
+   *
+   * KEY CONTRACT: if purchasePackage() returns without throwing, the App Store
+   * completed the transaction.  We unlock IMMEDIATELY — we do not wait for the
+   * RevenueCat entitlement to propagate (that can take seconds and caused the
+   * "remained locked" rejection from Apple review).
+   */
   const purchase = useCallback(
     async (product: PurchaseProduct): Promise<PurchaseResult> => {
       try {
@@ -91,33 +107,19 @@ export function useEntitlements() {
           return 'unavailable';
         }
 
-        const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+        // purchasePackage throws on user-cancel or failure.
+        // If it returns → purchase is confirmed by the App Store → unlock now.
+        await Purchases.purchasePackage({ aPackage: pkg });
+
         const newTier: Tier = PRODUCT_TIER_MAP[product] ?? PRODUCT_TIER[product] ?? 'unlock';
+        setGlobalTier(newTier, product);
 
-        // Primary check: entitlement in the purchase response
-        if (ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {})) {
-          setGlobalTier(newTier, product);
-          return 'success';
-        }
+        // Background: confirm entitlement with RevenueCat (non-blocking).
+        // The CustomerInfoUpdateListener in App.tsx will catch any async update.
+        Purchases.getCustomerInfo().catch(() => {});
 
-        // Fallback: re-fetch CustomerInfo — RevenueCat may not have propagated
-        // the entitlement into the purchasePackage response yet.
-        try {
-          const { customerInfo: fresh } = await Purchases.getCustomerInfo();
-          if (ENTITLEMENT_ID in (fresh.entitlements?.active ?? {})) {
-            setGlobalTier(newTier, product);
-            return 'success';
-          }
-        } catch {
-          // network issue — if App Store confirmed the purchase, grant access optimistically
-          console.warn('[RevenueCat] Post-purchase getCustomerInfo failed; granting optimistically');
-          setGlobalTier(newTier, product);
-          return 'success';
-        }
-
-        return 'cancelled';
+        return 'success';
       } catch (err: any) {
-        // userCancelled is thrown as an error by the SDK
         if (err?.code === 'PURCHASE_CANCELLED' || err?.userCancelled === true) {
           return 'cancelled';
         }
@@ -128,15 +130,20 @@ export function useEntitlements() {
     [],
   );
 
+  /**
+   * Restore previous purchases.
+   * Calls restorePurchases() which refreshes CustomerInfo from the App Store,
+   * then checks the entitlement.  Falls back to a second getCustomerInfo if
+   * the first response is stale.
+   */
   const restore = useCallback(async (): Promise<PurchaseResult> => {
     try {
-      // restorePurchases re-fetches CustomerInfo automatically
       const { customerInfo } = await Purchases.restorePurchases();
       if (ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {})) {
         setGlobalTier('unlock');
         return 'success';
       }
-      // Secondary check in case the first response was stale
+      // One retry in case RestorePurchases response was cached
       const { customerInfo: fresh } = await Purchases.getCustomerInfo();
       if (ENTITLEMENT_ID in (fresh.entitlements?.active ?? {})) {
         setGlobalTier('unlock');

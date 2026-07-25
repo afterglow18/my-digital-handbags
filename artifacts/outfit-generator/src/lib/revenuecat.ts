@@ -1,9 +1,9 @@
 /**
  * RevenueCat client — wraps @revenuecat/purchases-capacitor.
  *
- * Works in browser (test store) and native iOS (App Store).
- * Entitlement: "unlock"
- * Packages:    $rc_monthly | $rc_annual | $rc_lifetime
+ * Entitlement ID : "My Digital Handbags Pro"
+ * Offering ID    : "default"  (offerings.current)
+ * Products       : monthly.unlock | yearly.unlock | lifetime.unlock
  */
 import { Purchases } from "@revenuecat/purchases-capacitor";
 import type { PurchasesPackage, PurchasesOfferings } from "@revenuecat/purchases-capacitor";
@@ -12,9 +12,10 @@ import type { PurchaseProduct, Tier } from "@/types/local";
 const TEST_KEY = import.meta.env.VITE_REVENUECAT_TEST_API_KEY as string;
 const IOS_KEY  = import.meta.env.VITE_REVENUECAT_IOS_API_KEY  as string;
 
+// ─── Entitlement identifier — must match RevenueCat dashboard exactly ─────────
 export const ENTITLEMENT_ID = "My Digital Handbags Pro";
 
-/** Map app product keys → RevenueCat default package identifiers */
+// ─── Package identifiers (RevenueCat default $rc_* names) ────────────────────
 const PACKAGE_ID: Record<PurchaseProduct, string> = {
   monthly:  "$rc_monthly",
   yearly:   "$rc_annual",
@@ -22,11 +23,7 @@ const PACKAGE_ID: Record<PurchaseProduct, string> = {
   premium:  "$rc_lifetime",
 };
 
-/**
- * Map app product keys → RevenueCat packageType enum values.
- * SDK returns e.g. "MONTHLY", "ANNUAL", "LIFETIME" — NOT "$rc_monthly".
- * Used as a fallback when the identifier doesn't match (custom package names).
- */
+// ─── Package type enum values returned by the SDK (NOT "$rc_*") ───────────────
 const PACKAGE_TYPE: Record<PurchaseProduct, string> = {
   monthly:  "MONTHLY",
   yearly:   "ANNUAL",
@@ -34,7 +31,7 @@ const PACKAGE_TYPE: Record<PurchaseProduct, string> = {
   premium:  "LIFETIME",
 };
 
-/** Which tier each product unlocks */
+// ─── Which tier each product unlocks ─────────────────────────────────────────
 export const PRODUCT_TIER_MAP: Record<PurchaseProduct, Tier> = {
   monthly:  "unlock",
   yearly:   "unlock",
@@ -42,43 +39,73 @@ export const PRODUCT_TIER_MAP: Record<PurchaseProduct, Tier> = {
   premium:  "premium",
 };
 
+// ─── SDK initialisation ───────────────────────────────────────────────────────
 let _initialised = false;
 let _configurePromise: Promise<void> | null = null;
 
-/** Initialise RevenueCat and return a promise that resolves when the SDK is ready. */
+/**
+ * Initialise RevenueCat and return a promise that resolves when the SDK is
+ * configured.  Safe to call multiple times — subsequent calls are no-ops.
+ */
 export function initRevenueCat(): Promise<void> {
   if (_initialised && _configurePromise) return _configurePromise;
   _initialised = true;
 
-  // In browser / dev → use test store key; in native iOS → use App Store key.
-  // Capacitor automatically handles web vs native context.
   const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
   const apiKey   = isNative ? (IOS_KEY ?? TEST_KEY) : (TEST_KEY ?? IOS_KEY);
 
   if (!apiKey) {
-    console.warn("[RevenueCat] No API key found — purchases disabled");
+    console.warn("[RevenueCat] No API key — purchases disabled");
     _configurePromise = Promise.resolve();
     return _configurePromise;
   }
 
   _configurePromise = Purchases.configure({ apiKey })
-    .then(() => console.log("[RevenueCat] Configured"))
+    .then(() => console.log("[RevenueCat] Configured ✓"))
     .catch((e: unknown) => console.error("[RevenueCat] Configure error:", e));
 
   return _configurePromise;
 }
 
-/** Fetch the current offering and find the package for a given product.
- *  Tries three strategies in order:
- *  1. Match by default identifier ($rc_monthly, $rc_annual, $rc_lifetime)
- *  2. Match by SDK packageType enum ("MONTHLY", "ANNUAL", "LIFETIME")
- *  3. Fall back to first available package if only one exists
+// ─── Customer-info listener ───────────────────────────────────────────────────
+
+/**
+ * Register a callback that fires whenever RevenueCat pushes a CustomerInfo
+ * update (e.g. after a purchase, restore, or subscription renewal).
+ * Returns an unsubscribe function.
+ *
+ * Call this AFTER initRevenueCat() resolves.
+ */
+export function addCustomerInfoListener(
+  onUpdate: (hasEntitlement: boolean) => void,
+): () => void {
+  try {
+    const listenerHandle = Purchases.addCustomerInfoUpdateListener((info) => {
+      const active = ENTITLEMENT_ID in (info.entitlements?.active ?? {});
+      onUpdate(active);
+    });
+    // The SDK returns an object with a .remove() method
+    return () => {
+      try { (listenerHandle as any)?.remove?.(); } catch { /* ignore */ }
+    };
+  } catch (e) {
+    console.warn("[RevenueCat] addCustomerInfoUpdateListener failed:", e);
+    return () => {};
+  }
+}
+
+// ─── Package lookup ───────────────────────────────────────────────────────────
+
+/**
+ * Find the RevenueCat package for a given product.
+ * Strategy: identifier match first ($rc_*), then packageType enum fallback.
  */
 export async function getPackageForProduct(
   product: PurchaseProduct,
 ): Promise<PurchasesPackage | null> {
-  const pkgId  = PACKAGE_ID[product];
+  const pkgId   = PACKAGE_ID[product];
   const pkgType = PACKAGE_TYPE[product];
+
   const offerings: PurchasesOfferings = await Purchases.getOfferings();
   const current = offerings.current;
   if (!current || current.availablePackages.length === 0) return null;
@@ -90,22 +117,11 @@ export async function getPackageForProduct(
   );
 }
 
-/** Check whether the user currently has the "unlock" entitlement active. */
-export async function getActiveEntitlement(): Promise<boolean> {
-  const { customerInfo } = await Purchases.getCustomerInfo();
-  return ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {});
-}
-
-/** Restore previous purchases and return whether "unlock" is now active. */
-export async function restoreAndCheck(): Promise<boolean> {
-  const { customerInfo } = await Purchases.restorePurchases();
-  return ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {});
-}
+// ─── Startup sync ─────────────────────────────────────────────────────────────
 
 /**
- * Check the current customer's entitlements immediately after SDK init and
- * return true if "unlock" is active.  Call this on every cold launch so
- * localStorage stays in sync with RevenueCat's source of truth.
+ * Fetch CustomerInfo once on cold launch and return whether the entitlement
+ * is active.  Resolves false on any network error (local cache stands).
  */
 export async function syncEntitlementOnStartup(): Promise<boolean> {
   try {
