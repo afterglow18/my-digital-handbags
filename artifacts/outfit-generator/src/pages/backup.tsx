@@ -191,8 +191,8 @@ export default function AccountPage() {
               </span>
             </div>
 
-            {/* Upgrade button (hidden if already premium) */}
-            {tier !== 'premium' && (
+            {/* Upgrade button — only shown to free users */}
+            {tier === 'free' && (
               <PurpleButton onClick={() => setShowUpgrade(true)}>
                 Lifetime Unlock – $9.99
               </PurpleButton>
