@@ -67,7 +67,7 @@ const PLANS: Plan[] = [
 export function UpgradeSheet({ onClose }: Props) {
   const { purchase, restore } = useEntitlements();
   const [selected, setSelected] = useState<PurchaseProduct>("lifetime");
-  const [status, setStatus]     = useState<"idle" | "pending" | "restoring">("idle");
+  const [status, setStatus]     = useState<"idle" | "pending" | "restoring" | "error">("idle");
 
   const selectedPlan = PLANS.find(p => p.id === selected)!;
 
@@ -77,6 +77,9 @@ export function UpgradeSheet({ onClose }: Props) {
     const result: PurchaseResult = await purchase(selected);
     if (result === "success") {
       onClose();
+    } else if (result === "unavailable") {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
     } else {
       setStatus("idle");
     }
@@ -240,24 +243,30 @@ export function UpgradeSheet({ onClose }: Props) {
       >
         <button
           onClick={handlePurchase}
-          disabled={status === "pending"}
+          disabled={status === "pending" || status === "error"}
           className="w-full py-4 rounded-xl font-black text-base uppercase tracking-wide
-                     text-black transition-all active:translate-y-0.5 active:shadow-none
+                     text-white transition-all active:translate-y-0.5 active:shadow-none
                      disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            background: status === "pending" ? ROSE_DARK : `linear-gradient(to bottom, ${ROSE}, ${ROSE_DARK})`,
+            background: status === "error"
+              ? "#b91c1c"
+              : status === "pending"
+                ? ROSE_DARK
+                : `linear-gradient(to bottom, ${ROSE}, ${ROSE_DARK})`,
             border:     `2.5px solid ${ROSE_MID}`,
-            boxShadow:  status === "pending" ? "none" : "3px 3px 0 rgba(0,0,0,0.85)",
+            boxShadow:  (status === "pending" || status === "error") ? "none" : "3px 3px 0 rgba(0,0,0,0.85)",
             letterSpacing: "0.04em",
           }}
         >
           {status === "pending"
             ? "Opening checkout…"
-            : selected === "monthly"
-              ? `UNLOCK MONTHLY – ${selectedPlan.price} ›`
-              : selected === "yearly"
-                ? `UNLOCK YEARLY – ${selectedPlan.price} ›`
-                : `UNLOCK FOREVER – ${selectedPlan.price} ›`}
+            : status === "error"
+              ? "Something went wrong — try again"
+              : selected === "monthly"
+                ? `UNLOCK MONTHLY – ${selectedPlan.price} ›`
+                : selected === "yearly"
+                  ? `UNLOCK YEARLY – ${selectedPlan.price} ›`
+                  : `UNLOCK FOREVER – ${selectedPlan.price} ›`}
         </button>
 
         <button

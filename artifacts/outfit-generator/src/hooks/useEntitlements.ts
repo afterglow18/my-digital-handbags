@@ -103,9 +103,11 @@ export function useEntitlements() {
       try {
         const pkg = await getPackageForProduct(product);
         if (!pkg) {
-          console.warn('[RevenueCat] Package not found for product:', product);
+          console.error('[RevenueCat] Package not found for product:', product,
+            '— check that it is added to the "default" offering in the RevenueCat dashboard');
           return 'unavailable';
         }
+        console.log('[RevenueCat] Purchasing package:', pkg.identifier, pkg.packageType);
 
         // purchasePackage throws on user-cancel or failure.
         // If it returns → purchase is confirmed by the App Store → unlock now.
