@@ -43,17 +43,30 @@ export const PRODUCT_TIER_MAP: Record<PurchaseProduct, Tier> = {
 let _initialised = false;
 let _configurePromise: Promise<void> | null = null;
 
+/** True only when running inside a real Capacitor native shell (iOS/Android). */
+export function isNativePlatform(): boolean {
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
 /**
  * Initialise RevenueCat and return a promise that resolves when the SDK is
  * configured.  Safe to call multiple times — subsequent calls are no-ops.
+ * On web (browser preview) the SDK is skipped entirely; the plugin does not
+ * support web and would throw, triggering Vite's error overlay.
  */
 export function initRevenueCat(): Promise<void> {
   if (_initialised && _configurePromise) return _configurePromise;
   _initialised = true;
 
-  const isNative = !!(window as any).Capacitor?.isNativePlatform?.();
-  const apiKey   = isNative ? (IOS_KEY ?? TEST_KEY) : (TEST_KEY ?? IOS_KEY);
+  // RevenueCat Capacitor plugin is native-only. On web it throws
+  // "Web not supported in this plugin." — skip it entirely.
+  if (!isNativePlatform()) {
+    console.log("[RevenueCat] Skipping — web environment");
+    _configurePromise = Promise.resolve();
+    return _configurePromise;
+  }
 
+  const apiKey = IOS_KEY ?? TEST_KEY;
   if (!apiKey) {
     console.warn("[RevenueCat] No API key — purchases disabled");
     _configurePromise = Promise.resolve();
@@ -79,12 +92,12 @@ export function initRevenueCat(): Promise<void> {
 export function addCustomerInfoListener(
   onUpdate: (hasEntitlement: boolean) => void,
 ): () => void {
+  if (!isNativePlatform()) return () => {};
   try {
     const listenerHandle = Purchases.addCustomerInfoUpdateListener((info) => {
       const active = ENTITLEMENT_ID in (info.entitlements?.active ?? {});
       onUpdate(active);
     });
-    // The SDK returns an object with a .remove() method
     return () => {
       try { (listenerHandle as any)?.remove?.(); } catch { /* ignore */ }
     };
@@ -124,6 +137,7 @@ export async function getPackageForProduct(
  * is active.  Resolves false on any network error (local cache stands).
  */
 export async function syncEntitlementOnStartup(): Promise<boolean> {
+  if (!isNativePlatform()) return false;
   try {
     const { customerInfo } = await Purchases.getCustomerInfo();
     return ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {});
