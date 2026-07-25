@@ -13,7 +13,6 @@ import {
   ENTITLEMENT_ID,
   PRODUCT_TIER_MAP,
   getPackageForProduct,
-  restoreAndCheck,
 } from '@/lib/revenuecat';
 
 // ── Shared external store ─────────────────────────────────────────────────────
@@ -93,9 +92,25 @@ export function useEntitlements() {
         }
 
         const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+        const newTier: Tier = PRODUCT_TIER_MAP[product] ?? PRODUCT_TIER[product] ?? 'unlock';
 
+        // Primary check: entitlement in the purchase response
         if (ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {})) {
-          const newTier: Tier = PRODUCT_TIER_MAP[product] ?? PRODUCT_TIER[product] ?? 'unlock';
+          setGlobalTier(newTier, product);
+          return 'success';
+        }
+
+        // Fallback: re-fetch CustomerInfo — RevenueCat may not have propagated
+        // the entitlement into the purchasePackage response yet.
+        try {
+          const { customerInfo: fresh } = await Purchases.getCustomerInfo();
+          if (ENTITLEMENT_ID in (fresh.entitlements?.active ?? {})) {
+            setGlobalTier(newTier, product);
+            return 'success';
+          }
+        } catch {
+          // network issue — if App Store confirmed the purchase, grant access optimistically
+          console.warn('[RevenueCat] Post-purchase getCustomerInfo failed; granting optimistically');
           setGlobalTier(newTier, product);
           return 'success';
         }
@@ -115,8 +130,15 @@ export function useEntitlements() {
 
   const restore = useCallback(async (): Promise<PurchaseResult> => {
     try {
-      const active = await restoreAndCheck();
-      if (active) {
+      // restorePurchases re-fetches CustomerInfo automatically
+      const { customerInfo } = await Purchases.restorePurchases();
+      if (ENTITLEMENT_ID in (customerInfo.entitlements?.active ?? {})) {
+        setGlobalTier('unlock');
+        return 'success';
+      }
+      // Secondary check in case the first response was stale
+      const { customerInfo: fresh } = await Purchases.getCustomerInfo();
+      if (ENTITLEMENT_ID in (fresh.entitlements?.active ?? {})) {
         setGlobalTier('unlock');
         return 'success';
       }

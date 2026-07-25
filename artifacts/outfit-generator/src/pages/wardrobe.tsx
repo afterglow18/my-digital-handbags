@@ -370,16 +370,18 @@ export default function WardrobePage() {
             }}
           />
 
-          {/* Lipstick icon → upgrade */}
-          <button
-            onClick={() => setUpgradeReason("items")}
-            aria-label="Upgrade to premium"
-            style={{
-              position: "absolute", top: pY(ir, 0.906), left: pX(ir, 0.670),
-              width: pW(ir, 0.130), height: pH(ir, 0.080),
-              zIndex: 25, background: "transparent", border: "none", cursor: "pointer",
-            }}
-          />
+          {/* Lipstick icon → upgrade (hidden once user has purchased) */}
+          {isFree && (
+            <button
+              onClick={() => setUpgradeReason("items")}
+              aria-label="Upgrade to premium"
+              style={{
+                position: "absolute", top: pY(ir, 0.906), left: pX(ir, 0.670),
+                width: pW(ir, 0.130), height: pH(ir, 0.080),
+                zIndex: 25, background: "transparent", border: "none", cursor: "pointer",
+              }}
+            />
+          )}
 
           {/* Circle button covering the heart icon + "SAVED DESIGNS" text */}
           <button

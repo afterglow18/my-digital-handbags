@@ -14,12 +14,24 @@ const IOS_KEY  = import.meta.env.VITE_REVENUECAT_IOS_API_KEY  as string;
 
 export const ENTITLEMENT_ID = "My Digital Handbags Pro";
 
-/** Map app product keys → RevenueCat package identifiers */
+/** Map app product keys → RevenueCat default package identifiers */
 const PACKAGE_ID: Record<PurchaseProduct, string> = {
   monthly:  "$rc_monthly",
   yearly:   "$rc_annual",
   lifetime: "$rc_lifetime",
-  premium:  "$rc_lifetime", // premium uses lifetime package as fallback
+  premium:  "$rc_lifetime",
+};
+
+/**
+ * Map app product keys → RevenueCat packageType enum values.
+ * SDK returns e.g. "MONTHLY", "ANNUAL", "LIFETIME" — NOT "$rc_monthly".
+ * Used as a fallback when the identifier doesn't match (custom package names).
+ */
+const PACKAGE_TYPE: Record<PurchaseProduct, string> = {
+  monthly:  "MONTHLY",
+  yearly:   "ANNUAL",
+  lifetime: "LIFETIME",
+  premium:  "LIFETIME",
 };
 
 /** Which tier each product unlocks */
@@ -56,16 +68,24 @@ export function initRevenueCat(): Promise<void> {
   return _configurePromise;
 }
 
-/** Fetch the current offering and find the package for a given product. */
+/** Fetch the current offering and find the package for a given product.
+ *  Tries three strategies in order:
+ *  1. Match by default identifier ($rc_monthly, $rc_annual, $rc_lifetime)
+ *  2. Match by SDK packageType enum ("MONTHLY", "ANNUAL", "LIFETIME")
+ *  3. Fall back to first available package if only one exists
+ */
 export async function getPackageForProduct(
   product: PurchaseProduct,
 ): Promise<PurchasesPackage | null> {
-  const pkgId = PACKAGE_ID[product];
+  const pkgId  = PACKAGE_ID[product];
+  const pkgType = PACKAGE_TYPE[product];
   const offerings: PurchasesOfferings = await Purchases.getOfferings();
   const current = offerings.current;
-  if (!current) return null;
+  if (!current || current.availablePackages.length === 0) return null;
+
   return (
-    current.availablePackages.find((p: PurchasesPackage) => p.packageType === pkgId || p.identifier === pkgId) ??
+    current.availablePackages.find((p: PurchasesPackage) => p.identifier === pkgId) ??
+    current.availablePackages.find((p: PurchasesPackage) => p.packageType === pkgType) ??
     null
   );
 }
