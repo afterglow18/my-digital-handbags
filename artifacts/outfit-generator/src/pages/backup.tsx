@@ -191,12 +191,10 @@ export default function AccountPage() {
               </span>
             </div>
 
-            {/* Upgrade button — only shown to free users */}
-            {tier === 'free' && (
-              <PurpleButton onClick={() => setShowUpgrade(true)}>
-                Lifetime Unlock – $9.99
-              </PurpleButton>
-            )}
+            {/* View plans — available to all users; StoreKit shows "already purchased" if they re-tap */}
+            <PurpleButton onClick={() => setShowUpgrade(true)}>
+              {tier === 'free' ? 'Lifetime Unlock – $9.99' : 'View Plans'}
+            </PurpleButton>
 
             {/* Restore purchases */}
             <button

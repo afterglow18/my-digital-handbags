@@ -370,10 +370,10 @@ export default function WardrobePage() {
             }}
           />
 
-          {/* Lipstick icon — opens upgrade sheet for free users, Account page for premium */}
+          {/* Lipstick icon — always opens upgrade/plan sheet */}
           <button
-            onClick={() => isFree ? setUpgradeReason("items") : navigate("/backup")}
-            aria-label={isFree ? "Upgrade to premium" : "View my plan"}
+            onClick={() => setUpgradeReason("items")}
+            aria-label="View plans"
             style={{
               position: "absolute", top: pY(ir, 0.906), left: pX(ir, 0.670),
               width: pW(ir, 0.130), height: pH(ir, 0.080),
