@@ -560,7 +560,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                        hover:border-red-500 hover:text-red-600 transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            Delete from Vanity Forever
+            Delete from Collection Forever
           </button>
         ) : (
           <div className="flex gap-2">
