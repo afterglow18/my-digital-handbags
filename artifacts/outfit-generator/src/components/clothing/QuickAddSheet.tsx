@@ -469,15 +469,15 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
               </button>
               <button
                 onClick={handleSave}
-                disabled={bgProcessing}
+                disabled={selected === "cleaned" && !cleanedUrl}
                 className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-sm uppercase
                            tracking-wide text-white
                            shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
                            active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
                            disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                style={{ background: bgProcessing ? "#5C0F1E" : "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
+                style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
               >
-                {bgProcessing
+                {selected === "cleaned" && !cleanedUrl
                   ? "Processing…"
                   : isLastPhoto
                     ? "✓ Save to Closet"

@@ -369,8 +369,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const overlayTitle =
     photoTrigger === "remove-bg" ? "Clean Up Photo ✨" : "Replace Photo";
 
+  // Allow saving original at any time; only block if cleaned is selected but not ready yet
+  const canSavePhoto   = selected === "original" ? !!originalBlob : !!cleanedUrl;
   const saveButtonLabel =
-    bgProcessing
+    !canSavePhoto
       ? "Processing…"
       : selected === "cleaned"
         ? "Save Cleaned Version"
@@ -734,13 +736,13 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                 </button>
                 <button
                   onClick={handlePhotoSave}
-                  disabled={bgProcessing}
+                  disabled={!canSavePhoto}
                   className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-sm uppercase
                              tracking-wide text-white
                              shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]
                              active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
                              disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  style={{ background: bgProcessing ? "#5C0F1E" : "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
+                  style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
                 >
                   {saveButtonLabel}
                 </button>
