@@ -1,4 +1,6 @@
 import { removeBackground as imglyRemoveBackground } from "@imgly/background-removal";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — onnxruntime-web types.d.ts exists but isn't exposed via package "exports"
 import * as ort from "onnxruntime-web";
 
 let ortConfigured = false;
