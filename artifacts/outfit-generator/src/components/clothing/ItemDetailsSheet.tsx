@@ -122,7 +122,7 @@ interface FormState {
   purchaseDate: string; notes: string; isFavorite: boolean; category: string;
 }
 
-type PhotoPhase   = "idle" | "encoding" | "preview" | "saving";
+type PhotoPhase   = "idle" | "encoding" | "preview";
 type PhotoTrigger = "replace" | "remove-bg";
 
 function toForm(item: ClothingItem): FormState {
@@ -165,6 +165,9 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // ── Photo replacement / bg-removal state ────────────────────────────────────
+  // localImageUrl holds the just-chosen dataUrl for optimistic display.
+  // It overrides item.imageObjectPath until the parent re-renders with the DB value.
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
   const [photoPhase,    setPhotoPhase]    = useState<PhotoPhase>("idle");
   const [photoTrigger,  setPhotoTrigger]  = useState<PhotoTrigger>("replace");
   const [photoError,    setPhotoError]    = useState<string | null>(null);
@@ -186,6 +189,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   useEffect(() => {
     if (item) setForm(toForm(item));
     setShowDeleteConfirm(false);
+    setLocalImageUrl(null); // reset optimistic url whenever a new item is opened
   }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!item || !form) return null;
@@ -331,23 +335,28 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const handlePhotoSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
     if (!blob) return;
-    setPhotoPhase("saving");
+    // Convert the chosen blob to a dataUrl first (fast, in-memory)
+    let dataUrl: string;
     try {
-      const dataUrl = await blobToDataUrl(blob);
-      await new Promise<void>((resolve, reject) => {
-        updateItem.mutate(
-          { id: item.id, data: { imageObjectPath: dataUrl } },
-          {
-            onSuccess: () => { invalidate(); resolve(); },
-            onError:   reject,
-          },
-        );
-      });
-      resetPhotoState();
+      dataUrl = await blobToDataUrl(blob);
     } catch (err) {
-      setPhotoError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
-      setPhotoPhase("preview");
+      setPhotoError(`Could not read photo: ${err instanceof Error ? err.message : String(err)}`);
+      return;
     }
+    // Optimistic: update displayed photo immediately and close the overlay.
+    // The DB write happens in the background — no flash back to the old image.
+    setLocalImageUrl(dataUrl);
+    resetPhotoState();
+    updateItem.mutate(
+      { id: item.id, data: { imageObjectPath: dataUrl } },
+      {
+        onSuccess: () => invalidate(),
+        onError: (err) => {
+          console.error("Photo save failed, reverting:", err);
+          setLocalImageUrl(null); // revert optimistic update on failure
+        },
+      },
+    );
   }, [selected, cleanedBlob, originalBlob, item.id, updateItem, invalidate, resetPhotoState]);
 
   const handlePhotoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -357,7 +366,14 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   };
 
   const overlayTitle =
-    photoTrigger === "remove-bg" ? "Remove Background ✨" : "Replace Photo";
+    photoTrigger === "remove-bg" ? "Clean Up Photo ✨" : "Replace Photo";
+
+  const saveButtonLabel =
+    bgProcessing
+      ? "Processing…"
+      : selected === "cleaned"
+        ? "Save Cleaned Version"
+        : "Save Original";
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -416,9 +432,9 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           backgroundSize: "16px 16px",
         }}
       >
-        {item.imageObjectPath ? (
+        {(localImageUrl ?? item.imageObjectPath) ? (
           <img
-            src={getImageUrl(item.imageObjectPath)!}
+            src={localImageUrl ?? getImageUrl(item.imageObjectPath)!}
             alt={item.name}
             className="w-full h-full object-contain"
           />
@@ -453,7 +469,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
           >
             <Wand2 className="w-3.5 h-3.5" />
-            Remove BG ✨
+            Clean Up Photo ✨
           </button>
         )}
       </div>
@@ -633,15 +649,17 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                     <img src={originalUrl!} alt="Original"
                          style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }} />
                     {selected === "original" && (
-                      <div style={{ position: "absolute", top: 6, right: 6, width: 20, height: 20,
-                                    borderRadius: "50%", background: "black",
+                      <div style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22,
+                                    borderRadius: "50%", background: "#EC4899",
+                                    border: "2px solid white",
                                     display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Check size={12} color="white" strokeWidth={3} />
                       </div>
                     )}
                   </div>
                   <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
-                              textTransform: "uppercase", padding: "6px 0", margin: 0 }}>Original</p>
+                              textTransform: "uppercase", padding: "6px 0", margin: 0,
+                              color: selected === "original" ? "#BE185D" : undefined }}>Original</p>
                 </button>
 
                 {/* Cleaned card */}
@@ -650,10 +668,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                   disabled={!cleanedUrl}
                   style={{
                     flex: 1,
-                    opacity: selected === "cleaned" && cleanedUrl ? 1 : 0.5,
-                    border: selected === "cleaned" && cleanedUrl ? "4px solid black" : "4px solid rgba(0,0,0,0.2)",
+                    opacity: selected === "cleaned" && cleanedUrl ? 1 : 0.55,
+                    border: selected === "cleaned" && cleanedUrl ? "4px solid #EC4899" : "4px solid rgba(0,0,0,0.15)",
+                    boxShadow: selected === "cleaned" && cleanedUrl ? "0 0 0 2px #EC4899" : "none",
                     borderRadius: 16, overflow: "hidden", background: "none", padding: 0,
                     cursor: cleanedUrl ? "pointer" : "default",
+                    transition: "border-color 0.15s, box-shadow 0.15s, opacity 0.15s",
                   }}
                 >
                   <div style={{
@@ -687,7 +707,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                     )}
                   </div>
                   <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
-                              textTransform: "uppercase", padding: "6px 0", margin: 0 }}>Cleaned ✨</p>
+                              textTransform: "uppercase", padding: "6px 0", margin: 0,
+                              color: selected === "cleaned" && cleanedUrl ? "#BE185D" : undefined }}>Cleaned ✨</p>
                 </button>
               </div>
 
@@ -711,27 +732,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                              disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   style={{ background: bgProcessing ? "#5C0F1E" : "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
                 >
-                  {bgProcessing ? "Processing…" : "✓ Use This Photo"}
+                  {saveButtonLabel}
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Saving ── */}
-          {photoPhase === "saving" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column",
-                          alignItems: "center", justifyContent: "center", gap: 20, padding: 24 }}>
-              <div className="w-28 h-28 border-4 border-black rounded-3xl bg-white
-                              flex items-center justify-center
-                              shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-                <Loader2 className="w-12 h-12 animate-spin" strokeWidth={1.5} />
-              </div>
-              <div className="text-center">
-                <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
-                <p className="text-sm text-black/50 mt-1">Updating your photo.</p>
-              </div>
-            </div>
-          )}
 
         </div>
       )}
