@@ -192,55 +192,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     setLocalImageUrl(null); // reset optimistic url whenever a new item is opened
   }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!item || !form) return null;
+  // ── All useCallback hooks MUST live above any early return (Rules of Hooks) ──
 
-  const dirty = isDirty(form, item);
-  const patch = (key: keyof FormState) => (value: string | boolean) =>
-    setForm((prev) => prev ? { ...prev, [key]: value } : prev);
-
-  const invalidate = () => {
+  const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListOutfitsQueryKey() });
-  };
-
-  // ── Form save ────────────────────────────────────────────────────────────────
-
-  const handleSave = () => {
-    updateItem.mutate(
-      {
-        id: item.id,
-        data: {
-          name:          form.name.trim() || item.name,
-          brand:         form.brand.trim() || null,
-          color:         form.color.trim() || null,
-          size:          form.size.trim() || null,
-          season:        form.season || null,
-          occasion:      form.occasion || null,
-          purchasePrice: form.purchasePrice.trim() || null,
-          purchaseDate:  form.purchaseDate.trim() || null,
-          notes:         form.notes.trim() || null,
-          isFavorite:    form.isFavorite,
-          category:      (form.category || item.category) as ClothingItemUpdateCategory,
-        },
-      },
-      { onSuccess: () => { invalidate(); onClose(); } },
-    );
-  };
-
-  const handleDelete = () => {
-    deleteItem.mutate(
-      { id: item.id },
-      {
-        onSuccess: () => {
-          invalidate();
-          onDeleted?.();
-          onClose();
-        },
-      },
-    );
-  };
-
-  // ── Photo overlay handlers ───────────────────────────────────────────────────
+  }, [queryClient]);
 
   const resetPhotoState = useCallback(() => {
     bgGenRef.current += 1;   // cancels any in-flight removal
@@ -322,7 +279,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
    * and passed through encodeForUpload + removeBackground.
    */
   const handleRemoveBg = useCallback(async () => {
-    if (!item.imageObjectPath) return;
+    if (!item?.imageObjectPath) return;
     setPhotoTrigger("remove-bg");
     try {
       const blob = await dataUrlToBlob(item.imageObjectPath);
@@ -330,11 +287,11 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     } catch (err) {
       setPhotoError(`Could not load the current photo: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [item.imageObjectPath, handlePhotoFile]);
+  }, [item?.imageObjectPath, handlePhotoFile]);
 
   const handlePhotoSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
-    if (!blob) return;
+    if (!blob || !item) return;
     // Convert the chosen blob to a dataUrl first (fast, in-memory)
     let dataUrl: string;
     try {
@@ -357,7 +314,51 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         },
       },
     );
-  }, [selected, cleanedBlob, originalBlob, item.id, updateItem, invalidate, resetPhotoState]);
+  }, [selected, cleanedBlob, originalBlob, item, updateItem, invalidate, resetPhotoState]);
+
+  // ── Early return — must come AFTER all hooks ──────────────────────────────────
+  if (!item || !form) return null;
+
+  const dirty = isDirty(form, item);
+  const patch = (key: keyof FormState) => (value: string | boolean) =>
+    setForm((prev) => prev ? { ...prev, [key]: value } : prev);
+
+  // ── Form save ────────────────────────────────────────────────────────────────
+
+  const handleSave = () => {
+    updateItem.mutate(
+      {
+        id: item.id,
+        data: {
+          name:          form.name.trim() || item.name,
+          brand:         form.brand.trim() || null,
+          color:         form.color.trim() || null,
+          size:          form.size.trim() || null,
+          season:        form.season || null,
+          occasion:      form.occasion || null,
+          purchasePrice: form.purchasePrice.trim() || null,
+          purchaseDate:  form.purchaseDate.trim() || null,
+          notes:         form.notes.trim() || null,
+          isFavorite:    form.isFavorite,
+          category:      (form.category || item.category) as ClothingItemUpdateCategory,
+        },
+      },
+      { onSuccess: () => { invalidate(); onClose(); } },
+    );
+  };
+
+  const handleDelete = () => {
+    deleteItem.mutate(
+      { id: item.id },
+      {
+        onSuccess: () => {
+          invalidate();
+          onDeleted?.();
+          onClose();
+        },
+      },
+    );
+  };
 
   const handlePhotoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
