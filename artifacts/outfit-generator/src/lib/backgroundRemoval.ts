@@ -19,8 +19,26 @@ let ortConfigured = false;
 function configureOrt() {
   if (ortConfigured) return;
   ortConfigured = true;
-  ort.env.wasm.proxy      = true;
-  ort.env.wasm.numThreads = 1;
+
+  // imgly internally runs: ort.env.wasm.proxy = false  (when WebGPU is off)
+  // That line clobbers a simple assignment, so we lock the property with a
+  // getter/setter that always returns true and silently drops any write of false.
+  // This keeps WASM execution in a sub-worker so the main thread stays free
+  // to dispatch touch events while inference runs.
+  try {
+    Object.defineProperty((ort as any).env.wasm, "proxy", {
+      get: () => true,
+      set: () => { /* locked — always proxy */ },
+      configurable: true,
+    });
+  } catch {
+    // If the property is already non-configurable, fall back to a plain write.
+    (ort as any).env.wasm.proxy = true;
+  }
+
+  // iOS Safari / WKWebView has no SharedArrayBuffer → WASM multithreading
+  // is unavailable; force single-threaded to prevent a silent crash.
+  try { (ort as any).env.wasm.numThreads = 1; } catch { /* ignore */ }
 }
 
 /**
