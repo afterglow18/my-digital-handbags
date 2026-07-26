@@ -1,44 +1,48 @@
 import { removeBackground as imglyRemoveBackground } from "@imgly/background-removal";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — onnxruntime-web types.d.ts exists but isn't exposed via package "exports"
-import * as ort from "onnxruntime-web";
 
 let ortConfigured = false;
 
 /**
- * Configure ONNX Runtime once, before any inference runs.
+ * Configure ONNX Runtime once, just before the first inference call.
  *
- * proxy = true  → WASM execution moves to a dedicated sub-worker so the
- *                 main JS thread stays free to handle button taps, React
- *                 renders, etc. while the model is running.
+ * Dynamically imports onnxruntime-web to avoid triggering Vite's dep-
+ * optimisation at module-parse time (which causes a mid-session reload and
+ * corrupts React's dispatcher).
  *
- * numThreads = 1 → iOS Safari / WKWebView lacks SharedArrayBuffer support
- *                  needed for WASM multi-threading; 1 thread avoids the
- *                  crash/silent failure.
+ * Object.defineProperty locks proxy=true so imgly's internal line
+ *   `ort.env.wasm.proxy = false`  (runs when WebGPU is unavailable)
+ * cannot clobber it.  ONNX Runtime then moves WASM execution into a
+ * sub-worker, keeping the main thread free to dispatch touch events.
+ *
+ * numThreads=1 prevents a silent crash on iOS Safari / WKWebView, which
+ * has no SharedArrayBuffer and therefore cannot support WASM multithreading.
  */
-function configureOrt() {
+async function configureOrt(): Promise<void> {
   if (ortConfigured) return;
   ortConfigured = true;
 
-  // imgly internally runs: ort.env.wasm.proxy = false  (when WebGPU is off)
-  // That line clobbers a simple assignment, so we lock the property with a
-  // getter/setter that always returns true and silently drops any write of false.
-  // This keeps WASM execution in a sub-worker so the main thread stays free
-  // to dispatch touch events while inference runs.
   try {
-    Object.defineProperty((ort as any).env.wasm, "proxy", {
-      get: () => true,
-      set: () => { /* locked — always proxy */ },
-      configurable: true,
-    });
-  } catch {
-    // If the property is already non-configurable, fall back to a plain write.
-    (ort as any).env.wasm.proxy = true;
-  }
+    // Dynamic import — never runs at module initialisation time.
+    const ort = await import("onnxruntime-web");
+    const wasmEnv = (ort as any).env?.wasm;
+    if (!wasmEnv) return;
 
-  // iOS Safari / WKWebView has no SharedArrayBuffer → WASM multithreading
-  // is unavailable; force single-threaded to prevent a silent crash.
-  try { (ort as any).env.wasm.numThreads = 1; } catch { /* ignore */ }
+    // Lock proxy to true so imgly cannot set it back to false.
+    try {
+      Object.defineProperty(wasmEnv, "proxy", {
+        get: () => true,
+        set: () => { /* locked */ },
+        configurable: true,
+      });
+    } catch {
+      // Already non-configurable — write directly and hope for the best.
+      wasmEnv.proxy = true;
+    }
+
+    try { wasmEnv.numThreads = 1; } catch { /* ignore */ }
+  } catch {
+    // onnxruntime-web unavailable — inference will run on main thread.
+  }
 }
 
 /**
@@ -48,7 +52,7 @@ function configureOrt() {
  * Throws on network error or unreadable image — callers should catch and fall back.
  */
 export async function removeBackground(dataUrl: string): Promise<string> {
-  configureOrt();
+  await configureOrt();
   const sourceBlob = await dataUrlToBlob(dataUrl);
   const resultBlob = await imglyRemoveBackground(sourceBlob, {
     model: "isnet_fp16", // valid: "isnet" | "isnet_fp16" | "isnet_quint8" — NOT "small"/"medium"
