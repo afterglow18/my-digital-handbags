@@ -460,19 +460,28 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           {item.imageObjectPath ? "Replace Photo" : "Add Photo"}
         </button>
 
-        {item.imageObjectPath && (
-          <button
-            onClick={handleRemoveBg}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5
-                       border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
-                       text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-                       active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
-            style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
-          >
-            <Wand2 className="w-3.5 h-3.5" />
-            Clean Up Photo ✨
-          </button>
-        )}
+        {item.imageObjectPath && (() => {
+          const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
+          const alreadyCleaned = currentUrl.startsWith("data:image/png");
+          return (
+            <button
+              onClick={alreadyCleaned ? undefined : handleRemoveBg}
+              disabled={alreadyCleaned}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                         border-2 rounded-xl text-xs font-bold uppercase tracking-wide
+                         transition-all"
+              style={alreadyCleaned
+                ? { background: "#e5e7eb", borderColor: "#d1d5db", color: "#9ca3af",
+                    boxShadow: "none", cursor: "not-allowed" }
+                : { background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                    borderColor: "black", color: "white",
+                    boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              {alreadyCleaned ? "Already Cleaned ✨" : "Clean Up Photo ✨"}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Form */}
