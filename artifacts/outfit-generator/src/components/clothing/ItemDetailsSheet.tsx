@@ -12,6 +12,7 @@
  * blank-screen gaps between phase transitions.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2 } from "lucide-react";
 import type { ClothingItem, ClothingItemUpdateCategory } from "@/types/local";
@@ -385,7 +386,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <motion.div
+    <>
       initial={{ opacity: 0, y: "100%" }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: "100%" }}
@@ -593,8 +594,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         onChange={handlePhotoInputChange}
       />
 
-      {/* ── Photo overlay — plain conditional divs, NO AnimatePresence ── */}
-      {photoPhase !== "idle" && (
+      </motion.div>
+
+      {/* ── Photo overlay — rendered via portal so it escapes the motion.div's
+           CSS transform context and overflow-y-auto scroll container, both of
+           which trap position:fixed children on iOS Safari and swallow taps. ── */}
+      {photoPhase !== "idle" && createPortal(
         <div className="fixed inset-0 z-[75] flex flex-col max-w-md mx-auto bg-[#f9f4ee]">
 
           {/* Overlay header */}
@@ -755,8 +760,9 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           )}
 
 
-        </div>
+        </div>,
+        document.body
       )}
-    </motion.div>
+    </>
   );
 }
