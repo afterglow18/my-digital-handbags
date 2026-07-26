@@ -471,22 +471,19 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         {item.imageObjectPath && (() => {
           const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
           const alreadyCleaned = currentUrl.startsWith("data:image/png");
+          if (alreadyCleaned) return null;
           return (
             <button
-              onClick={alreadyCleaned ? undefined : handleRemoveBg}
-              disabled={alreadyCleaned}
+              onClick={handleRemoveBg}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5
                          border-2 rounded-xl text-xs font-bold uppercase tracking-wide
                          transition-all"
-              style={alreadyCleaned
-                ? { background: "#e5e7eb", borderColor: "#d1d5db", color: "#9ca3af",
-                    boxShadow: "none", cursor: "not-allowed" }
-                : { background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
-                    borderColor: "black", color: "white",
-                    boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+              style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                       borderColor: "black", color: "white",
+                       boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
             >
               <Wand2 className="w-3.5 h-3.5" />
-              {alreadyCleaned ? "Already Cleaned ✨" : "Clean Up Photo ✨"}
+              Clean Up Photo ✨
             </button>
           );
         })()}
