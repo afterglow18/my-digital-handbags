@@ -292,6 +292,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const handlePhotoSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
     if (!blob || !item) return;
+    // Cancel any in-flight BG removal so its async state updates
+    // don't race with the save / phase transition.
+    bgGenRef.current += 1;
+    setBgProcessing(false);
     // Convert the chosen blob to a dataUrl first (fast, in-memory)
     let dataUrl: string;
     try {

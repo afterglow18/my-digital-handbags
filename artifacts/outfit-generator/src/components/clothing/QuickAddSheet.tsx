@@ -6,7 +6,7 @@
  *
  * Multiple photos are processed sequentially — each one gets its own comparison
  * screen. "Save & Next" saves the current selection and moves to the next photo.
- * The final photo shows "✓ Save to Closet" and closes the sheet.
+ * The final photo shows "✓ Save" and closes the sheet.
  *
  * Background removal runs on-device via @imgly/background-removal.
  * First call downloads ~15 MB ONNX model from imgly CDN (cached thereafter).
@@ -191,6 +191,10 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const handleSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
     if (!blob) return;
+    // Cancel any in-flight BG removal so its async state updates
+    // don't race with the save / phase transition.
+    bgGenRef.current += 1;
+    setBgProcessing(false);
     setPhase("uploading");
     try {
       const dataUrl  = await blobToDataUrl(blob);
@@ -480,7 +484,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                 {selected === "cleaned" && !cleanedUrl
                   ? "Processing…"
                   : isLastPhoto
-                    ? "✓ Save to Closet"
+                    ? "✓ Save"
                     : `Save & Next (${queueRemaining} left)`}
               </button>
             </div>
