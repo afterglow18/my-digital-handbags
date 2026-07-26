@@ -3,16 +3,17 @@
  * Every field is optional and editable. A "Save" button appears only when
  * the form is dirty. Delete is always available.
  *
- * Photo replacement uses the same on-device background removal flow as
- * QuickAddSheet: encoding → side-by-side Original | Cleaned ✨ comparison →
- * user picks version → saved via updateItem.
+ * Photo actions (below the photo area):
+ *   • Replace Photo 📷  — opens file picker → comparison flow
+ *   • Remove Background ✨ — feeds the current saved image into the same
+ *     comparison flow without requiring a re-upload
  *
  * Phase blocks use plain conditional divs — NOT AnimatePresence — to avoid
  * blank-screen gaps between phase transitions.
  */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check } from "lucide-react";
+import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2 } from "lucide-react";
 import type { ClothingItem, ClothingItemUpdateCategory } from "@/types/local";
 import { useUpdateClothingItem, useDeleteClothingItem, getListClothingQueryKey } from "@/hooks/useLocalWardrobe";
 import { getListOutfitsQueryKey } from "@/hooks/useLocalOutfits";
@@ -121,7 +122,8 @@ interface FormState {
   purchaseDate: string; notes: string; isFavorite: boolean; category: string;
 }
 
-type PhotoPhase = "idle" | "encoding" | "preview" | "saving";
+type PhotoPhase   = "idle" | "encoding" | "preview" | "saving";
+type PhotoTrigger = "replace" | "remove-bg";
 
 function toForm(item: ClothingItem): FormState {
   return {
@@ -159,11 +161,12 @@ function isDirty(form: FormState, item: ClothingItem): boolean {
 
 export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetProps) {
   // ── Form state ───────────────────────────────────────────────────────────────
-  const [form, setForm]                         = useState<FormState | null>(null);
+  const [form, setForm]                           = useState<FormState | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // ── Photo replacement state ──────────────────────────────────────────────────
+  // ── Photo replacement / bg-removal state ────────────────────────────────────
   const [photoPhase,    setPhotoPhase]    = useState<PhotoPhase>("idle");
+  const [photoTrigger,  setPhotoTrigger]  = useState<PhotoTrigger>("replace");
   const [photoError,    setPhotoError]    = useState<string | null>(null);
   const [originalBlob,  setOriginalBlob]  = useState<Blob | null>(null);
   const [originalUrl,   setOriginalUrl]   = useState<string | null>(null);
@@ -233,7 +236,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     );
   };
 
-  // ── Photo replacement handlers ───────────────────────────────────────────────
+  // ── Photo overlay handlers ───────────────────────────────────────────────────
 
   const resetPhotoState = useCallback(() => {
     bgGenRef.current += 1;   // cancels any in-flight removal
@@ -248,6 +251,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     setSelected("original");
   }, []);
 
+  /**
+   * Core comparison flow. Works for both "Replace Photo" (new file picked)
+   * and "Remove Background" (existing stored image passed in as a Blob).
+   */
   const handlePhotoFile = useCallback(async (file: File | Blob) => {
     setPhotoError(null);
     const myGen = ++bgGenRef.current;
@@ -299,6 +306,28 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     }
   }, []);
 
+  /** Open file picker to pick a replacement photo. */
+  const handleReplacePhoto = useCallback(() => {
+    setPhotoTrigger("replace");
+    photoInputRef.current?.click();
+  }, []);
+
+  /**
+   * Feed the currently-saved image directly into the comparison flow.
+   * No re-upload required — the stored dataUrl is converted to a Blob
+   * and passed through encodeForUpload + removeBackground.
+   */
+  const handleRemoveBg = useCallback(async () => {
+    if (!item.imageObjectPath) return;
+    setPhotoTrigger("remove-bg");
+    try {
+      const blob = await dataUrlToBlob(item.imageObjectPath);
+      handlePhotoFile(blob);
+    } catch (err) {
+      setPhotoError(`Could not load the current photo: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [item.imageObjectPath, handlePhotoFile]);
+
   const handlePhotoSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
     if (!blob) return;
@@ -326,6 +355,9 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     if (file) handlePhotoFile(file);
     e.target.value = "";
   };
+
+  const overlayTitle =
+    photoTrigger === "remove-bg" ? "Remove Background ✨" : "Replace Photo";
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -376,14 +408,13 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         </div>
       </div>
 
-      {/* Photo — tappable to replace */}
+      {/* Photo */}
       <div
-        className="w-full h-52 flex-shrink-0 border-b-2 border-black relative group cursor-pointer"
+        className="w-full h-52 flex-shrink-0 border-b-2 border-black relative"
         style={{
           backgroundImage: "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
           backgroundSize: "16px 16px",
         }}
-        onClick={() => photoInputRef.current?.click()}
       >
         {item.imageObjectPath ? (
           <img
@@ -394,22 +425,36 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-black/30">
             <Camera className="w-8 h-8" />
-            <span className="text-xs font-bold uppercase tracking-wide">Add Photo</span>
+            <span className="text-xs font-bold uppercase tracking-wide">No Photo Yet</span>
           </div>
         )}
-        {/* Replace overlay hint */}
-        <div className="absolute inset-0 bg-black/0 group-active:bg-black/20 transition-colors
-                        flex items-end justify-center pb-3 pointer-events-none">
-          <span className="opacity-0 group-active:opacity-100 transition-opacity
-                           bg-black/70 text-white text-[10px] font-bold uppercase tracking-wide
-                           px-3 py-1 rounded-full">
-            Replace Photo
-          </span>
-        </div>
+      </div>
+
+      {/* Photo action buttons */}
+      <div className="flex gap-2 px-4 py-3 border-b-2 border-black bg-white flex-shrink-0">
+        <button
+          onClick={handleReplacePhoto}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                     border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
+                     bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                     active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+        >
+          <Camera className="w-3.5 h-3.5" />
+          {item.imageObjectPath ? "Replace Photo" : "Add Photo"}
+        </button>
+
         {item.imageObjectPath && (
-          <div className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5 opacity-60">
-            <Camera className="w-3.5 h-3.5 text-white" />
-          </div>
+          <button
+            onClick={handleRemoveBg}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                       border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
+                       text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                       active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+            style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            Remove BG ✨
+          </button>
         )}
       </div>
 
@@ -516,7 +561,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         onChange={handlePhotoInputChange}
       />
 
-      {/* ── Photo replacement overlay — plain conditional divs, NO AnimatePresence ── */}
+      {/* ── Photo overlay — plain conditional divs, NO AnimatePresence ── */}
       {photoPhase !== "idle" && (
         <div className="fixed inset-0 z-[75] flex flex-col max-w-md mx-auto bg-[#f9f4ee]">
 
@@ -525,7 +570,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             className="flex items-center justify-between px-4 pb-3 bg-white border-b-2 border-black flex-shrink-0"
             style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
           >
-            <h2 className="font-display font-bold text-xl uppercase tracking-tight">Replace Photo</h2>
+            <h2 className="font-display font-bold text-xl uppercase tracking-tight">{overlayTitle}</h2>
             {photoPhase === "preview" && (
               <button
                 onClick={resetPhotoState}
@@ -549,7 +594,11 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
               </div>
               <div className="text-center">
                 <p className="font-display font-bold text-2xl uppercase tracking-tight">Processing…</p>
-                <p className="text-sm text-black/50 mt-1">Getting your photo ready.</p>
+                <p className="text-sm text-black/50 mt-1">
+                  {photoTrigger === "remove-bg"
+                    ? "Loading your current photo."
+                    : "Getting your photo ready."}
+                </p>
               </div>
             </div>
           )}
