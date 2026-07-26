@@ -203,7 +203,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
 
   // ── handleSave — save current photo, then advance queue or close ─────────────
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     // Read from refs — not closed-over state — so we always get the
     // current blob regardless of when this callback was last recreated.
     const blob = selectedRef.current === "cleaned" && cleanedBlobRef.current
@@ -255,7 +255,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
       setErrorMsg(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
       setPhase("preview");
     }
-  }, [category, existingCount, createItem, queryClient, onCreated, handleFile, handleClose]);
+  };
 
   // ── handleFiles — kick off queue with all selected photos ────────────────────
 
