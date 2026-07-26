@@ -109,6 +109,12 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   // Generation counter prevents a slow photo from clobbering a faster second pick
   const bgGenRef = useRef(0);
 
+  // Refs mirror the blob/selected state so handleSave always reads the
+  // latest value — avoids stale useCallback closure bugs.
+  const originalBlobRef = useRef<Blob | null>(null);
+  const cleanedBlobRef  = useRef<Blob | null>(null);
+  const selectedRef     = useRef<"original" | "cleaned">("original");
+
   const cameraInputRef  = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +126,9 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const handleClose = useCallback(() => {
     bgGenRef.current += 1;   // cancels any in-flight removal
     setBgProcessing(false);  // MUST reset — close can happen mid-removal
+    originalBlobRef.current = null;
+    cleanedBlobRef.current  = null;
+    selectedRef.current     = "original";
     setPhase("pick");
     setErrorMsg(null);
     setOriginalBlob(null);
@@ -139,6 +148,9 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const handleFile = useCallback(async (file: File | Blob) => {
     setErrorMsg(null);
     const myGen = ++bgGenRef.current;
+    originalBlobRef.current = null;
+    cleanedBlobRef.current  = null;
+    selectedRef.current     = "original";
     setOriginalBlob(null);
     setOriginalUrl(null);
     setCleanedBlob(null);
@@ -161,6 +173,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
 
     if (bgGenRef.current !== myGen) return;
+    originalBlobRef.current = jpeg;
     setOriginalBlob(jpeg);
     setOriginalUrl(URL.createObjectURL(jpeg));
     setPhase("preview");
@@ -174,6 +187,8 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
       const resultBlob   = await dataUrlToBlob(resultUrl);
       const resultObjUrl = URL.createObjectURL(resultBlob);
       if (bgGenRef.current !== myGen) { URL.revokeObjectURL(resultObjUrl); return; }
+      cleanedBlobRef.current = resultBlob;
+      selectedRef.current    = "cleaned";
       setCleanedBlob(resultBlob);
       setCleanedUrl(resultObjUrl);
       setSelected("cleaned");
@@ -189,8 +204,15 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   // ── handleSave — save current photo, then advance queue or close ─────────────
 
   const handleSave = useCallback(async () => {
-    const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
-    if (!blob) return;
+    // Read from refs — not closed-over state — so we always get the
+    // current blob regardless of when this callback was last recreated.
+    const blob = selectedRef.current === "cleaned" && cleanedBlobRef.current
+      ? cleanedBlobRef.current
+      : originalBlobRef.current;
+    if (!blob) {
+      setErrorMsg("No photo ready — please wait a moment and try again.");
+      return;
+    }
     // Cancel any in-flight BG removal so its async state updates
     // don't race with the save / phase transition.
     bgGenRef.current += 1;
@@ -233,7 +255,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
       setErrorMsg(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
       setPhase("preview");
     }
-  }, [selected, cleanedBlob, originalBlob, category, existingCount, createItem, queryClient, onCreated, handleFile, handleClose]);
+  }, [category, existingCount, createItem, queryClient, onCreated, handleFile, handleClose]);
 
   // ── handleFiles — kick off queue with all selected photos ────────────────────
 
