@@ -1,11 +1,12 @@
 /**
  * QuickAddSheet
  *
- * Upload flow (single photo):
- *   pick ──(file chosen)──► encoding ──► preview (Original | Cleaned ✨) ──► uploading ──► close
+ * Upload flow (any number of photos):
+ *   pick ──(files chosen)──► encoding ──► preview (Original | Cleaned ✨) ──► [next photo OR close]
  *
- * Upload flow (multiple photos from gallery):
- *   pick ──(files chosen)──► uploading ──► close
+ * Multiple photos are processed sequentially — each one gets its own comparison
+ * screen. "Save & Next" saves the current selection and moves to the next photo.
+ * The final photo shows "✓ Save to Closet" and closes the sheet.
  *
  * Background removal runs on-device via @imgly/background-removal.
  * First call downloads ~15 MB ONNX model from imgly CDN (cached thereafter).
@@ -39,14 +40,8 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 type Phase = "pick" | "encoding" | "preview" | "uploading";
 
-interface UploadProgress { done: number; total: number; }
-
 // ── encodeForUpload (outside component — no closure deps) ─────────────────────
 
-/**
- * Compress a File/Blob to JPEG ≤ 2048 px on the longest edge.
- * Rejects with a descriptive error if the canvas produces a blank result.
- */
 async function encodeForUpload(input: File | Blob): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(input);
@@ -82,7 +77,6 @@ interface Props {
   onOpenChange:  (open: boolean) => void;
   category:      Category;
   existingCount: number;
-  /** Called with the newly created item after a successful save. */
   onCreated?:    (item: ClothingItem) => void;
 }
 
@@ -94,9 +88,9 @@ const PHOTO_TIPS = [
 ] as const;
 
 export function QuickAddSheet({ open, onOpenChange, category, existingCount, onCreated }: Props) {
+  // ── Per-photo comparison state ────────────────────────────────────────────────
   const [phase,        setPhase]        = useState<Phase>("pick");
   const [errorMsg,     setErrorMsg]     = useState<string | null>(null);
-  const [progress,     setProgress]     = useState<UploadProgress | null>(null);
   const [originalBlob, setOriginalBlob] = useState<Blob | null>(null);
   const [originalUrl,  setOriginalUrl]  = useState<string | null>(null);
   const [cleanedBlob,  setCleanedBlob]  = useState<Blob | null>(null);
@@ -105,8 +99,14 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const [bgFailed,     setBgFailed]     = useState(false);
   const [selected,     setSelected]     = useState<"original" | "cleaned">("original");
 
-  // Each photo bumps this counter. Every async step checks it before writing state —
-  // prevents a slow first photo from clobbering a fast second one.
+  // ── Multi-photo queue ─────────────────────────────────────────────────────────
+  // queue = photos still to process after the current one
+  const [queue,      setQueue]      = useState<File[]>([]);
+  const [queueTotal, setQueueTotal] = useState(0);
+  // How many photos saved so far in this batch — used for auto-naming
+  const savedCountRef = useRef(0);
+
+  // Generation counter prevents a slow photo from clobbering a faster second pick
   const bgGenRef = useRef(0);
 
   const cameraInputRef  = useRef<HTMLInputElement>(null);
@@ -115,28 +115,29 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const createItem  = useCreateClothingItem();
   const queryClient = useQueryClient();
 
-  // ── handleClose ─────────────────────────────────────────────────────────────
+  // ── handleClose ──────────────────────────────────────────────────────────────
 
   const handleClose = useCallback(() => {
     bgGenRef.current += 1;   // cancels any in-flight removal
     setBgProcessing(false);  // MUST reset — close can happen mid-removal
     setPhase("pick");
     setErrorMsg(null);
-    setProgress(null);
     setOriginalBlob(null);
     setOriginalUrl(null);
     setCleanedBlob(null);
     setCleanedUrl(null);
     setBgFailed(false);
     setSelected("original");
+    setQueue([]);
+    setQueueTotal(0);
+    savedCountRef.current = 0;
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // ── handleFile — single photo → comparison flow ──────────────────────────────
+  // ── handleFile — one photo through the comparison flow ───────────────────────
 
   const handleFile = useCallback(async (file: File | Blob) => {
     setErrorMsg(null);
-    // Bump generation so any in-flight removal from a previous pick is discarded.
     const myGen = ++bgGenRef.current;
     setOriginalBlob(null);
     setOriginalUrl(null);
@@ -146,7 +147,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     setBgProcessing(false);
     setSelected("original");
 
-    // Switch to "encoding" BEFORE first await — user sees spinner immediately.
+    // Switch to "encoding" BEFORE first await — spinner appears immediately
     setPhase("encoding");
 
     let jpeg: Blob;
@@ -160,13 +161,10 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
 
     if (bgGenRef.current !== myGen) return;
-
-    // Show original, switch to comparison screen.
     setOriginalBlob(jpeg);
     setOriginalUrl(URL.createObjectURL(jpeg));
     setPhase("preview");
 
-    // Background removal — runs in parallel with the user seeing the original.
     setBgProcessing(true);
     try {
       const dataUrl = await blobToDataUrl(jpeg);
@@ -188,7 +186,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
   }, []);
 
-  // ── handleSave — save selected version to IndexedDB ──────────────────────────
+  // ── handleSave — save current photo, then advance queue or close ─────────────
 
   const handleSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
@@ -197,7 +195,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     try {
       const dataUrl  = await blobToDataUrl(blob);
       const label    = CATEGORY_LABELS[category];
-      const n        = existingCount + 1;
+      const n        = existingCount + savedCountRef.current + 1;
       const autoName = n === 1 ? label : `${label} ${n}`;
 
       await new Promise<void>((resolve, reject) => {
@@ -213,76 +211,35 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
           },
         );
       });
-      handleClose();
+
+      savedCountRef.current += 1;
+
+      // Advance to next photo in queue, or close if done
+      setQueue((prev) => {
+        if (prev.length > 0) {
+          const [next, ...rest] = prev;
+          handleFile(next);
+          return rest;
+        }
+        // Last photo saved — close
+        handleClose();
+        return [];
+      });
     } catch (err) {
       setErrorMsg(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
       setPhase("preview");
     }
-  }, [selected, cleanedBlob, originalBlob, category, existingCount, createItem, queryClient, onCreated, handleClose]);
+  }, [selected, cleanedBlob, originalBlob, category, existingCount, createItem, queryClient, onCreated, handleFile, handleClose]);
 
-  // ── handleFiles — multiple photos → batch upload (no comparison) ─────────────
+  // ── handleFiles — kick off queue with all selected photos ────────────────────
 
-  const saveBlob = useCallback(async (blob: Blob, countOffset: number): Promise<boolean> => {
-    try {
-      const dataUrl  = await blobToDataUrl(blob);
-      const label    = CATEGORY_LABELS[category];
-      const n        = existingCount + countOffset + 1;
-      const autoName = n === 1 ? label : `${label} ${n}`;
-
-      await new Promise<void>((resolve, reject) => {
-        createItem.mutate(
-          { data: { name: autoName, category, imageObjectPath: dataUrl } },
-          {
-            onSuccess: (createdItem) => {
-              queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
-              if (onCreated) onCreated(createdItem);
-              resolve();
-            },
-            onError: reject,
-          },
-        );
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }, [category, existingCount, createItem, queryClient, onCreated]);
-
-  const handleFiles = useCallback(async (files: File[]) => {
+  const handleFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
-    // Single file → full comparison flow.
-    if (files.length === 1) {
-      handleFile(files[0]);
-      return;
-    }
-    // Multiple files → batch upload without comparison.
-    setErrorMsg(null);
-    setPhase("uploading");
-    setProgress({ done: 0, total: files.length });
-
-    let saved = 0;
-    for (let i = 0; i < files.length; i++) {
-      try {
-        const jpeg = await encodeForUpload(files[i]);
-        const ok   = await saveBlob(jpeg, i);
-        if (ok) saved++;
-      } catch {
-        // skip failed file
-      }
-      setProgress({ done: i + 1, total: files.length });
-    }
-
-    if (saved === 0) {
-      setErrorMsg("Could not save the photos. Please try again.");
-      setPhase("pick");
-      setProgress(null);
-    } else {
-      handleClose();
-      setProgress(null);
-    }
-  }, [handleFile, saveBlob, handleClose]);
-
-  // ── Input handler ──────────────────────────────────────────────────────────
+    savedCountRef.current = 0;
+    setQueueTotal(files.length);
+    setQueue(files.slice(1));   // rest go into queue
+    handleFile(files[0]);       // start with first immediately
+  }, [handleFile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -292,9 +249,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
 
   if (!open) return null;
 
-  const label = CATEGORY_LABELS[category];
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const label         = CATEGORY_LABELS[category];
+  const queueRemaining = queue.length;
+  const isLastPhoto   = queueRemaining === 0;
+  // "Photo 2 of 5" — only shown when batch > 1
+  const currentPhotoNum = queueTotal > 1 ? queueTotal - queueRemaining : null;
 
   return (
     <motion.div
@@ -309,20 +268,17 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
         className="flex items-center justify-between px-4 pb-3 bg-white border-b-2 border-black flex-shrink-0"
         style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
       >
-        <h2 className="font-display font-bold text-xl uppercase tracking-tight">
-          Add {label}
-        </h2>
-        {phase === "pick" && (
-          <button
-            onClick={handleClose}
-            className="w-9 h-9 border-2 border-black rounded-full flex items-center justify-center
-                       bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-                       active:translate-y-0.5 active:translate-x-0.5 active:shadow-none transition-all"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-        {phase === "preview" && (
+        <div>
+          <h2 className="font-display font-bold text-xl uppercase tracking-tight">
+            Add {label}
+          </h2>
+          {currentPhotoNum !== null && (
+            <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 mt-0.5">
+              Photo {currentPhotoNum} of {queueTotal}
+            </p>
+          )}
+        </div>
+        {(phase === "pick" || phase === "preview") && (
           <button
             onClick={handleClose}
             className="w-9 h-9 border-2 border-black rounded-full flex items-center justify-center
@@ -352,8 +308,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                 className="flex-1 flex flex-col items-center justify-center gap-3 py-8
                            border-4 border-black rounded-2xl
                            shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]
-                           active:translate-x-1 active:translate-y-1 active:shadow-none
-                           transition-all"
+                           active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
                 style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
               >
                 <span className="text-4xl leading-none">📷</span>
@@ -367,12 +322,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                 className="flex-1 flex flex-col items-center justify-center gap-3 py-8
                            border-4 border-black rounded-2xl bg-white
                            shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]
-                           active:translate-x-1 active:translate-y-1 active:shadow-none
-                           transition-all"
+                           active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
               >
                 <span className="text-4xl leading-none">🖼️</span>
                 <span className="font-display font-bold text-base uppercase tracking-tight text-center leading-tight">
-                  Upload<br />Photo
+                  Upload<br />Photos
                 </span>
               </button>
             </div>
@@ -400,7 +354,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
           </div>
         )}
 
-        {/* ── Encoding — full-screen spinner, shown immediately after photo is picked ── */}
+        {/* ── Encoding ── */}
         {phase === "encoding" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column",
                         alignItems: "center", justifyContent: "center", gap: 20, padding: 24 }}>
@@ -430,9 +384,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
               {bgProcessing ? "This will take a moment…" : bgFailed ? "Original" : "Tap to choose"}
             </p>
 
-            {/* Side-by-side cards */}
             <div style={{ display: "flex", gap: 12 }}>
-
               {/* Original card */}
               <button
                 onClick={() => setSelected("original")}
@@ -440,33 +392,22 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                   flex: 1,
                   opacity: selected === "original" ? 1 : 0.5,
                   border: selected === "original" ? "4px solid black" : "4px solid rgba(0,0,0,0.2)",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  background: "none",
-                  padding: 0,
-                  cursor: "pointer",
+                  borderRadius: 16, overflow: "hidden", background: "none", padding: 0, cursor: "pointer",
                 }}
               >
                 <div style={{ background: "black", minHeight: 176, position: "relative" }}>
-                  <img
-                    src={originalUrl!}
-                    alt="Original"
-                    style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }}
-                  />
+                  <img src={originalUrl!} alt="Original"
+                       style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }} />
                   {selected === "original" && (
-                    <div style={{
-                      position: "absolute", top: 6, right: 6,
-                      width: 20, height: 20, borderRadius: "50%", background: "black",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
+                    <div style={{ position: "absolute", top: 6, right: 6, width: 20, height: 20,
+                                  borderRadius: "50%", background: "black",
+                                  display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Check size={12} color="white" strokeWidth={3} />
                     </div>
                   )}
                 </div>
                 <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
-                            textTransform: "uppercase", padding: "6px 0", margin: 0 }}>
-                  Original
-                </p>
+                            textTransform: "uppercase", padding: "6px 0", margin: 0 }}>Original</p>
               </button>
 
               {/* Cleaned card */}
@@ -477,35 +418,23 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                   flex: 1,
                   opacity: selected === "cleaned" && cleanedUrl ? 1 : 0.5,
                   border: selected === "cleaned" && cleanedUrl ? "4px solid black" : "4px solid rgba(0,0,0,0.2)",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  background: "none",
-                  padding: 0,
+                  borderRadius: 16, overflow: "hidden", background: "none", padding: 0,
                   cursor: cleanedUrl ? "pointer" : "default",
                 }}
               >
-                {/* Checkerboard reveals transparency */}
                 <div style={{
                   background: "repeating-conic-gradient(#d1d5db 0% 25%, white 0% 50%) 0 0 / 12px 12px",
-                  minHeight: 176,
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  minHeight: 176, position: "relative",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {cleanedUrl ? (
                     <>
-                      <img
-                        src={cleanedUrl}
-                        alt="Cleaned"
-                        style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }}
-                      />
+                      <img src={cleanedUrl} alt="Cleaned"
+                           style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }} />
                       {selected === "cleaned" && (
-                        <div style={{
-                          position: "absolute", top: 6, right: 6,
-                          width: 20, height: 20, borderRadius: "50%", background: "black",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
+                        <div style={{ position: "absolute", top: 6, right: 6, width: 20, height: 20,
+                                      borderRadius: "50%", background: "black",
+                                      display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Check size={12} color="white" strokeWidth={3} />
                         </div>
                       )}
@@ -519,16 +448,12 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                       <Loader2 size={32} style={{ opacity: 0.5 }} className="animate-spin" />
                       <p style={{ fontSize: 13, fontWeight: "bold", textTransform: "uppercase",
-                                  opacity: 0.5, margin: 0 }}>
-                        Processing
-                      </p>
+                                  opacity: 0.5, margin: 0 }}>Processing</p>
                     </div>
                   )}
                 </div>
                 <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
-                            textTransform: "uppercase", padding: "6px 0", margin: 0 }}>
-                  Cleaned ✨
-                </p>
+                            textTransform: "uppercase", padding: "6px 0", margin: 0 }}>Cleaned ✨</p>
               </button>
             </div>
 
@@ -552,7 +477,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                            disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 style={{ background: bgProcessing ? "#5C0F1E" : "linear-gradient(to bottom, #7D1528, #5C0F1E)" }}
               >
-                {bgProcessing ? "Processing…" : "✓ Save to Closet"}
+                {bgProcessing
+                  ? "Processing…"
+                  : isLastPhoto
+                    ? "✓ Save to Closet"
+                    : `Save & Next (${queueRemaining} left)`}
               </button>
             </div>
           </div>
@@ -569,11 +498,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
             </div>
             <div className="text-center">
               <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
-              <p className="text-sm text-black/50 mt-1">
-                {progress && progress.total > 1
-                  ? `${progress.done} of ${progress.total} photos added.`
-                  : "Adding to your collection."}
-              </p>
+              <p className="text-sm text-black/50 mt-1">Adding to your collection.</p>
             </div>
           </div>
         )}
