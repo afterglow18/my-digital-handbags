@@ -669,7 +669,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                          style={{ width: "100%", objectFit: "contain", maxHeight: 176, display: "block" }} />
                     {selected === "original" && (
                       <div style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22,
-                                    borderRadius: "50%", background: "#EC4899",
+                                    borderRadius: "50%", background: "#7D1528",
                                     border: "2px solid white",
                                     display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Check size={12} color="white" strokeWidth={3} />
@@ -678,7 +678,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                   </div>
                   <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
                               textTransform: "uppercase", padding: "6px 0", margin: 0,
-                              color: selected === "original" ? "#BE185D" : undefined }}>Original</p>
+                              color: selected === "original" ? "#7D1528" : undefined }}>Original</p>
                 </button>
 
                 {/* Cleaned card */}
@@ -688,8 +688,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                   style={{
                     flex: 1,
                     opacity: selected === "cleaned" && cleanedUrl ? 1 : 0.55,
-                    border: selected === "cleaned" && cleanedUrl ? "4px solid #EC4899" : "4px solid rgba(0,0,0,0.15)",
-                    boxShadow: selected === "cleaned" && cleanedUrl ? "0 0 0 2px #EC4899" : "none",
+                    border: selected === "cleaned" && cleanedUrl ? "4px solid #7D1528" : "4px solid rgba(0,0,0,0.15)",
+                    boxShadow: selected === "cleaned" && cleanedUrl ? "0 0 0 2px #7D1528" : "none",
                     borderRadius: 16, overflow: "hidden", background: "none", padding: 0,
                     cursor: cleanedUrl ? "pointer" : "default",
                     transition: "border-color 0.15s, box-shadow 0.15s, opacity 0.15s",
@@ -727,7 +727,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                   </div>
                   <p style={{ textAlign: "center", fontWeight: "bold", fontSize: 11,
                               textTransform: "uppercase", padding: "6px 0", margin: 0,
-                              color: selected === "cleaned" && cleanedUrl ? "#BE185D" : undefined }}>Cleaned ✨</p>
+                              color: selected === "cleaned" && cleanedUrl ? "#7D1528" : undefined }}>Cleaned ✨</p>
                 </button>
               </div>
 
