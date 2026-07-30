@@ -11,12 +11,10 @@
 import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 
-type Phase = "splash" | "unzipping" | "zooming" | "hero" | "exiting";
+type Phase = "splash" | "unzipping" | "zooming" | "exiting";
 
 const UNZIP_MS = 900;
 const ZOOM_MS  = 550;
-const HERO_MS  = 450;
-const HOLD_MS  = 200;
 const EXIT_MS  = 450;
 
 const GOLD    = "#d4af37";
@@ -48,8 +46,7 @@ const GAP_H   = 24;
 interface Props { onEnter: () => void; }
 
 export default function WelcomePage({ onEnter }: Props) {
-  const [phase,       setPhase]       = useState<Phase>("splash");
-  const [heroVisible, setHeroVisible] = useState(false);
+  const [phase, setPhase] = useState<Phase>("splash");
   const calledRef   = useRef(false);
   const zipControls = useAnimation();   // zipper pull — x in px
   const bagControls = useAnimation();   // whole-bag zoom
@@ -90,10 +87,8 @@ export default function WelcomePage({ onEnter }: Props) {
       });
     }, UNZIP_MS + 60);
 
-    setTimeout(() => setHeroVisible(true),  UNZIP_MS + ZOOM_MS * 0.4);
-    setTimeout(() => setPhase("hero"),      UNZIP_MS + ZOOM_MS * 0.65);
-    setTimeout(() => setPhase("exiting"),   UNZIP_MS + ZOOM_MS + HOLD_MS);
-    setTimeout(finish,                      UNZIP_MS + ZOOM_MS + HOLD_MS + EXIT_MS);
+    setTimeout(() => setPhase("exiting"), UNZIP_MS + ZOOM_MS);
+    setTimeout(finish,                    UNZIP_MS + ZOOM_MS + EXIT_MS);
   };
 
   return (
@@ -114,19 +109,6 @@ export default function WelcomePage({ onEnter }: Props) {
         position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
         background: "radial-gradient(ellipse 70% 55% at 50% 48%, rgba(120,10,35,0.45) 0%, transparent 70%)",
       }} />
-
-      {/* Hero image */}
-      <motion.img
-        src="/handbag-hero.jpg"
-        alt="Handbag collection"
-        draggable={false}
-        animate={{ opacity: heroVisible ? 1 : 0 }}
-        transition={{ duration: HERO_MS / 1000, ease: "easeOut" }}
-        style={{
-          position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover", objectPosition: "center", zIndex: 1,
-        }}
-      />
 
       {/* Bag + branding wrapper — zooms on cue */}
       <motion.div
