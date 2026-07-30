@@ -572,7 +572,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                          boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
               >
                 <CalendarCheck className="w-3.5 h-3.5" />
-                Wearing This Today
+                Wearing Today
               </button>
             )}
           </div>
