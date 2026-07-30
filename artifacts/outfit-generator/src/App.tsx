@@ -81,8 +81,8 @@ function AppShell() {
         <Router />
       </WouterRouter>
 
-      {/* Splash sequence — hero image → animated welcome → app */}
-      <AnimatePresence mode="wait">
+      {/* Splash sequence — hero image crossfades into animated welcome → app */}
+      <AnimatePresence mode="sync">
         {splashPhase === "hero" && (
           <HeroSplash key="hero" onContinue={() => setSplashPhase("welcome")} />
         )}

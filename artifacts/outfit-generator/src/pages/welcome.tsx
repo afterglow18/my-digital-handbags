@@ -98,6 +98,7 @@ export default function WelcomePage({ onEnter }: Props) {
 
   return (
     <motion.div
+      initial={{ opacity: 0 }}
       animate={{ opacity: phase === "exiting" ? 0 : 1 }}
       transition={{ duration: EXIT_MS / 1000, ease: "easeIn" }}
       style={{
