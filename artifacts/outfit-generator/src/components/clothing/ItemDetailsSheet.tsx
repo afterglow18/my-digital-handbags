@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2 } from "lucide-react";
+import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2, CalendarCheck } from "lucide-react";
 import type { ClothingItem, ClothingItemUpdateCategory } from "@/types/local";
 import { useUpdateClothingItem, useDeleteClothingItem, getListClothingQueryKey } from "@/hooks/useLocalWardrobe";
 import { getListOutfitsQueryKey } from "@/hooks/useLocalOutfits";
@@ -25,6 +25,23 @@ import {
   blobToDataUrl,
   dataUrlToBlob,
 } from "@/lib/backgroundRemoval";
+
+// ── Wear-tracking helpers ─────────────────────────────────────────────────────
+
+/** Returns today's date as "YYYY-MM-DD" in local time. */
+function todayLocalDate(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+/** Formats a "YYYY-MM-DD" string as "M/D/YY". */
+function formatLastWorn(dateStr: string): string {
+  const [y, mo, day] = dateStr.split("-").map(Number);
+  return `${mo}/${day}/${String(y).slice(-2)}`;
+}
 
 // ── encodeForUpload (outside component) ──────────────────────────────────────
 
@@ -165,6 +182,11 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const [form, setForm]                           = useState<FormState | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // ── Wear tracking state ──────────────────────────────────────────────────────
+  const [wornCount,      setWornCount]      = useState<number>(0);
+  const [lastWornDate,   setLastWornDate]   = useState<string | null>(null);
+  const [prevLastWornDate, setPrevLastWornDate] = useState<string | null>(null);
+
   // ── Photo replacement / bg-removal state ────────────────────────────────────
   // localImageUrl holds the just-chosen dataUrl for optimistic display.
   // It overrides item.imageObjectPath until the parent re-renders with the DB value.
@@ -188,7 +210,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (item) setForm(toForm(item));
+    if (item) {
+      setForm(toForm(item));
+      setWornCount(item.timesWorn ?? 0);
+      setLastWornDate(item.lastWornDate ?? null);
+      setPrevLastWornDate(null);
+    }
     setShowDeleteConfirm(false);
     setLocalImageUrl(null); // reset optimistic url whenever a new item is opened
   }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -320,6 +347,34 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       },
     );
   }, [selected, cleanedBlob, originalBlob, item, updateItem, invalidate, resetPhotoState]);
+
+  // ── Wear tracking handlers ────────────────────────────────────────────────────
+
+  const handleWearToday = useCallback(() => {
+    if (!item) return;
+    const today = todayLocalDate();
+    const newCount = wornCount + 1;
+    setPrevLastWornDate(lastWornDate);
+    setWornCount(newCount);
+    setLastWornDate(today);
+    updateItem.mutate(
+      { id: item.id, data: { timesWorn: newCount, lastWornDate: today } },
+      { onSuccess: () => invalidate() },
+    );
+  }, [item, wornCount, lastWornDate, updateItem, invalidate]);
+
+  const handleUndoWear = useCallback(() => {
+    if (!item) return;
+    const newCount = Math.max(0, wornCount - 1);
+    const restoredDate = prevLastWornDate;
+    setWornCount(newCount);
+    setLastWornDate(restoredDate);
+    setPrevLastWornDate(null);
+    updateItem.mutate(
+      { id: item.id, data: { timesWorn: newCount, lastWornDate: restoredDate } },
+      { onSuccess: () => invalidate() },
+    );
+  }, [item, wornCount, prevLastWornDate, updateItem, invalidate]);
 
   // ── Early return — must come AFTER all hooks ──────────────────────────────────
   if (!item || !form) return null;
@@ -455,39 +510,74 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         )}
       </div>
 
-      {/* Photo action buttons */}
-      <div className="flex gap-2 px-4 py-3 border-b-2 border-black bg-white flex-shrink-0">
-        <button
-          onClick={handleReplacePhoto}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5
-                     border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
-                     bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-                     active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
-        >
-          <Camera className="w-3.5 h-3.5" />
-          {item.imageObjectPath ? "Replace Photo" : "Add Photo"}
-        </button>
+      {/* Photo action buttons + wear tracking */}
+      {(() => {
+        const today = todayLocalDate();
+        const loggedToday = lastWornDate === today;
+        return (
+          <div className="px-4 py-3 border-b-2 border-black bg-white flex-shrink-0 flex flex-col gap-2">
+            {/* Row 1: photo actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleReplacePhoto}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                           border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
+                           bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                           active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                {item.imageObjectPath ? "Replace Photo" : "Add Photo"}
+              </button>
 
-        {item.imageObjectPath && (() => {
-          const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
-          const alreadyCleaned = currentUrl.startsWith("data:image/png");
-          if (alreadyCleaned) return null;
-          return (
-            <button
-              onClick={handleRemoveBg}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5
-                         border-2 rounded-xl text-xs font-bold uppercase tracking-wide
-                         transition-all"
-              style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
-                       borderColor: "black", color: "white",
-                       boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
-            >
-              <Wand2 className="w-3.5 h-3.5" />
-              Clean Up Photo ✨
-            </button>
-          );
-        })()}
-      </div>
+              {item.imageObjectPath && (() => {
+                const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
+                const alreadyCleaned = currentUrl.startsWith("data:image/png");
+                if (alreadyCleaned) return null;
+                return (
+                  <button
+                    onClick={handleRemoveBg}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                               border-2 rounded-xl text-xs font-bold uppercase tracking-wide
+                               transition-all"
+                    style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                             borderColor: "black", color: "white",
+                             boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    Clean Up Photo ✨
+                  </button>
+                );
+              })()}
+            </div>
+
+            {/* Row 2: wear tracking */}
+            {loggedToday ? (
+              <button
+                onClick={handleUndoWear}
+                className="w-full flex items-center justify-center gap-2 py-2.5
+                           border-2 border-black rounded-xl text-xs font-bold uppercase tracking-wide
+                           bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                           active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                <Check className="w-3.5 h-3.5 text-green-600" />
+                <span>Logged ✓ · Undo</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleWearToday}
+                className="w-full flex items-center justify-center gap-2 py-2.5
+                           border-2 rounded-xl text-xs font-bold uppercase tracking-wide transition-all"
+                style={{ background: "linear-gradient(to bottom, #1a1a1a, #000)",
+                         borderColor: "black", color: "white",
+                         boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+              >
+                <CalendarCheck className="w-3.5 h-3.5" />
+                Wearing This Today
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Form */}
       <div className="flex-1 px-4 py-5 flex flex-col gap-4">
@@ -522,11 +612,29 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         <div className="grid grid-cols-2 gap-3">
           <SelectField label="Category" value={form.category}
                        onChange={patch("category") as (v: string) => void} options={CATEGORY_OPTIONS} />
-          <div className="flex flex-col gap-1 opacity-50 pointer-events-none">
+          <div className="flex flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-widest text-black/40">Times Worn</span>
-            <div className="border-2 border-black/20 rounded-lg px-3 py-2 text-sm font-medium bg-white/50">
-              {item.timesWorn ?? 0}
-            </div>
+            <input
+              type="number"
+              min={0}
+              value={wornCount}
+              onChange={(e) => setWornCount(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              onBlur={(e) => {
+                const n = Math.max(0, parseInt(e.target.value, 10) || 0);
+                setWornCount(n);
+                updateItem.mutate(
+                  { id: item.id, data: { timesWorn: n } },
+                  { onSuccess: () => invalidate() },
+                );
+              }}
+              className="w-full border-2 border-black rounded-lg px-3 py-2 text-sm font-medium
+                         bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {lastWornDate && (
+              <span className="text-[10px] text-black/40 font-medium mt-0.5">
+                Last worn: {formatLastWorn(lastWornDate)}
+              </span>
+            )}
           </div>
         </div>
       </div>
