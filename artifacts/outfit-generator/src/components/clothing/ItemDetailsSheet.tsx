@@ -559,7 +559,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                            bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
                            active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
               >
-                <Check className="w-3.5 h-3.5 text-green-600" />
+                <Heart className="w-3.5 h-3.5 fill-[#7D1528] text-[#7D1528]" />
                 <span>Logged ✓ · Undo</span>
               </button>
             ) : (
