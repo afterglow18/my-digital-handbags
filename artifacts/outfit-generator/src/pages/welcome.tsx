@@ -100,12 +100,11 @@ export default function WelcomePage({ onEnter }: Props) {
     <motion.div
       animate={{ opacity: phase === "exiting" ? 0 : 1 }}
       transition={{ duration: EXIT_MS / 1000, ease: "easeIn" }}
-      onClick={phase === "splash" ? handleTap : undefined}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "#130306",
         display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: phase === "splash" ? "pointer" : "default",
+        cursor: "default",
         overflow: "hidden",
       }}
     >
@@ -297,6 +296,13 @@ export default function WelcomePage({ onEnter }: Props) {
         {/* ── Branding ── */}
         <div style={{ marginTop: 22, textAlign: "center" }}>
           <div style={{
+            fontSize: 11, fontWeight: 500,
+            letterSpacing: "0.26em", textTransform: "uppercase",
+            color: "rgba(247,242,236,0.65)", marginBottom: 10,
+          }}>
+            Welcome to
+          </div>
+          <div style={{
             fontFamily: "'Great Vibes', cursive",
             fontWeight: 400,
             fontSize: "clamp(38px, 11vw, 56px)",
@@ -316,20 +322,33 @@ export default function WelcomePage({ onEnter }: Props) {
 
           <AnimatePresence>
             {phase === "splash" && (
-              <motion.div
-                key="tap-hint"
-                initial={{ opacity: 0, y: 5 }}
+              <motion.button
+                key="enter-btn"
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+                onClick={handleTap}
                 style={{
-                  fontSize: 10, letterSpacing: "0.22em",
+                  display: "block",
+                  marginTop: 28,
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                  padding: "13px 44px",
+                  background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                  border: "1px solid rgba(212,175,55,0.35)",
+                  borderRadius: 14,
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.22em",
                   textTransform: "uppercase",
-                  color: "rgba(247,242,236,0.55)", marginTop: 18,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.06) inset",
                 }}
               >
-                tap to open
-              </motion.div>
+                Open Collection
+              </motion.button>
             )}
           </AnimatePresence>
         </div>

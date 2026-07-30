@@ -7,6 +7,7 @@ import SavedPage from './pages/saved';
 import FavoritesPage from './pages/favorites';
 import BackupPage from './pages/backup';
 import WelcomePage from './pages/welcome';
+import HeroSplash from './pages/hero-splash';
 import { LockedScreen } from './components/LockedScreen';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
@@ -67,17 +68,28 @@ function Router() {
   );
 }
 
+type SplashPhase = "hero" | "welcome" | "entered";
+
 function AppShell() {
   const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
-  const [entered, setEntered] = useState<boolean>(() => isPreview);
+  const [splashPhase, setSplashPhase] = useState<SplashPhase>(() => isPreview ? "entered" : "hero");
   const { enabled, isLocked, authenticate, enableLock, disableLock } = useBiometricLock();
 
   return (
     <BiometricLockContext.Provider value={{ enabled, enableLock, disableLock }}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <Router />
-        {!entered && <WelcomePage onEnter={() => setEntered(true)} />}
       </WouterRouter>
+
+      {/* Splash sequence — hero image → animated welcome → app */}
+      <AnimatePresence mode="wait">
+        {splashPhase === "hero" && (
+          <HeroSplash key="hero" onContinue={() => setSplashPhase("welcome")} />
+        )}
+        {splashPhase === "welcome" && (
+          <WelcomePage key="welcome" onEnter={() => setSplashPhase("entered")} />
+        )}
+      </AnimatePresence>
 
       {/* Biometric lock gate — sits above everything including the welcome splash */}
       <AnimatePresence>
