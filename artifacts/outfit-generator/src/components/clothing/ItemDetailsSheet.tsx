@@ -546,25 +546,20 @@ export function ItemDetailsSheet({ item, onClose, onDeleted, showAddToLookbook =
                   <BookMarked className="w-3.5 h-3.5" />
                   Add to Lookbook
                 </button>
-              ) : item.imageObjectPath && (() => {
-                const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
-                const alreadyCleaned = currentUrl.startsWith("data:image/png");
-                if (alreadyCleaned) return null;
-                return (
-                  <button
-                    onClick={handleRemoveBg}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5
-                               border-2 rounded-xl text-xs font-bold uppercase tracking-wide
-                               transition-all"
-                    style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
-                             borderColor: "black", color: "white",
-                             boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    Clean Up Photo ✨
-                  </button>
-                );
-              })()}
+              ) : item.imageObjectPath ? (
+                <button
+                  onClick={handleRemoveBg}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                             border-2 rounded-xl text-xs font-bold uppercase tracking-wide
+                             transition-all"
+                  style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                           borderColor: "black", color: "white",
+                           boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  Clean Up Photo ✨
+                </button>
+              ) : null}
             </div>
 
             {/* Row 2: wear tracking */}
