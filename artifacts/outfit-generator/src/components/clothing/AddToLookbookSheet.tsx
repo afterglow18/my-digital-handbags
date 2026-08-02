@@ -30,7 +30,7 @@ function ThreeThumbs({ outfit }: { outfit: SavedOutfit }) {
           <div
             key={i}
             className="w-10 h-10 border border-black/15 rounded overflow-hidden flex-shrink-0"
-            style={{ background: "#FDECEF" }}
+            style={{ background: "#F5EDE3" }}
           >
             {it?.imageObjectPath ? (
               <img
@@ -98,7 +98,7 @@ export function AddToLookbookSheet({ item, onClose }: Props) {
       <div className="px-4 py-3 border-b border-black/10 bg-white flex items-center gap-3">
         <div
           className="w-12 h-12 border-2 border-black rounded overflow-hidden flex-shrink-0"
-          style={{ background: "#FDECEF" }}
+          style={{ background: "#F5EDE3" }}
         >
           {item.imageObjectPath ? (
             <img

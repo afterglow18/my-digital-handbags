@@ -40,7 +40,7 @@ function ItemPhoto({
     <button
       onClick={onClick}
       className={`w-full ${sizeClass} border-2 border-black overflow-hidden relative`}
-      style={{ background: "#FDECEF", padding: 0, display: "block" }}
+      style={{ background: "#F5EDE3", padding: 0, display: "block" }}
     >
       {item.imageObjectPath ? (
         <img
@@ -260,7 +260,7 @@ export default function SavedPage() {
                         >
                           <div
                             className="w-11 h-11 border border-black/20 rounded overflow-hidden flex-shrink-0"
-                            style={{ background: "#FDECEF" }}
+                            style={{ background: "#F5EDE3" }}
                           >
                             {item.imageObjectPath ? (
                               <img
@@ -310,7 +310,7 @@ export default function SavedPage() {
                                   <div
                                     key={i}
                                     className="w-9 h-9 border border-black/15 rounded overflow-hidden"
-                                    style={{ background: "#FDECEF" }}
+                                    style={{ background: "#F5EDE3" }}
                                   >
                                     {it?.imageObjectPath ? (
                                       <img
@@ -498,7 +498,7 @@ export default function SavedPage() {
                             <button
                               onClick={() => setDetailsItem(item)}
                               className="w-full aspect-square border-2 border-black overflow-hidden rounded"
-                              style={{ background: "#FDECEF" }}
+                              style={{ background: "#F5EDE3" }}
                             >
                               {item.imageObjectPath ? (
                                 <img src={getImageUrl(item.imageObjectPath)!} alt={item.name} className="w-full h-full object-contain" />

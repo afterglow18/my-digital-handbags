@@ -104,7 +104,7 @@ export function WardrobePickerSheet({ open, onOpenChange, category, onPick, exis
                   >
                     <div
                       className="relative w-full aspect-square border-2 border-black overflow-hidden"
-                      style={{ background: "#FDECEF" }}
+                      style={{ background: "#F5EDE3" }}
                     >
                       {item.imageObjectPath ? (
                         <img
