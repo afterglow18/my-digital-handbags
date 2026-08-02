@@ -14,7 +14,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2, CalendarCheck } from "lucide-react";
+import { X, Heart, Trash2, Save, ChevronDown, Camera, Loader2, Check, Wand2, CalendarCheck, BookMarked } from "lucide-react";
+import { AddToLookbookSheet } from "@/components/clothing/AddToLookbookSheet";
 import type { ClothingItem, ClothingItemUpdateCategory } from "@/types/local";
 import { useUpdateClothingItem, useDeleteClothingItem, getListClothingQueryKey } from "@/hooks/useLocalWardrobe";
 import { getListOutfitsQueryKey } from "@/hooks/useLocalOutfits";
@@ -132,6 +133,8 @@ interface ItemDetailsSheetProps {
   item: ClothingItem | null;
   onClose: () => void;
   onDeleted?: () => void;
+  /** When true: show "Add to Lookbook" instead of "Clean Up Photo". */
+  showAddToLookbook?: boolean;
 }
 
 interface FormState {
@@ -177,10 +180,11 @@ function isDirty(form: FormState, item: ClothingItem): boolean {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetProps) {
+export function ItemDetailsSheet({ item, onClose, onDeleted, showAddToLookbook = false }: ItemDetailsSheetProps) {
   // ── Form state ───────────────────────────────────────────────────────────────
   const [form, setForm]                           = useState<FormState | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLookbookPicker, setShowLookbookPicker] = useState(false);
 
   // ── Wear tracking state ──────────────────────────────────────────────────────
   const [wornCount,      setWornCount]      = useState<number>(0);
@@ -529,7 +533,20 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                 {item.imageObjectPath ? "Replace Photo" : "Add Photo"}
               </button>
 
-              {item.imageObjectPath && (() => {
+              {showAddToLookbook ? (
+                <button
+                  onClick={() => setShowLookbookPicker(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5
+                             border-2 rounded-xl text-xs font-bold uppercase tracking-wide
+                             transition-all"
+                  style={{ background: "linear-gradient(to bottom, #7D1528, #5C0F1E)",
+                           borderColor: "black", color: "white",
+                           boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" }}
+                >
+                  <BookMarked className="w-3.5 h-3.5" />
+                  Add to Lookbook
+                </button>
+              ) : item.imageObjectPath && (() => {
                 const currentUrl = localImageUrl ?? item.imageObjectPath ?? "";
                 const alreadyCleaned = currentUrl.startsWith("data:image/png");
                 if (alreadyCleaned) return null;
@@ -869,6 +886,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         </div>,
         document.body
       )}
+      {/* Add to Lookbook picker */}
+      <AnimatePresence>
+        {showLookbookPicker && item && (
+          <AddToLookbookSheet item={item} onClose={() => setShowLookbookPicker(false)} />
+        )}
+      </AnimatePresence>
     </>
   );
 }

@@ -11,6 +11,7 @@ import HeroSplash from './pages/hero-splash';
 import { LockedScreen } from './components/LockedScreen';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
+import { useVisionIndexer } from '@/hooks/useVisionIndexer';
 import { initRevenueCat, syncEntitlementOnStartup, addCustomerInfoListener } from '@/lib/revenuecat';
 import { setGlobalTier } from '@/hooks/useEntitlements';
 import { useBiometricLock } from '@/hooks/useBiometricLock';
@@ -71,6 +72,7 @@ function Router() {
 type SplashPhase = "hero" | "welcome" | "entered";
 
 function AppShell() {
+  useVisionIndexer();
   const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
   const [splashPhase, setSplashPhase] = useState<SplashPhase>(() => isPreview ? "entered" : "hero");
   const { enabled, isLocked, authenticate, enableLock, disableLock } = useBiometricLock();

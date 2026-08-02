@@ -3,4 +3,5 @@
 - [Stripe integration](stripe-integration.md) — credential field name fix, checkout flow design, stripe-replit-sync warning, product seeding.
 - [Auth system](auth-system.md) — JWT/bcrypt auth, no-fallback-secret rule, ownership-before-delete pattern, single useAuth instance via context.
 - [Local-first migration](local-first-migration.md) — IndexedDB replaces API server; all IDs are UUID strings; purchase() stubs RevenueCat.
+- [Vision search feature](vision-search.md) — visionLabels/visionText/visionVersion fields on ClothingItem; web canvas indexer; search scoring; showAddToLookbook prop pattern.
 - [ONNX main-thread block on iOS](onnx-ios-main-thread.md) — imgly BG removal freezes all JS events on iOS; fix is ort.env.wasm.proxy=true + numThreads=1 before first call.

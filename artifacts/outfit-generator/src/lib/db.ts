@@ -100,6 +100,9 @@ export async function dbCreateClothing(data: CreateClothingData): Promise<Clothi
     isFavorite: data.isFavorite ?? false,
     timesWorn: 0,
     lastWornDate: null,
+    visionLabels: [],
+    visionText: [],
+    visionVersion: 0,
     createdAt: now,
     updatedAt: now,
   };

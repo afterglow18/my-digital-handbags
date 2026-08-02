@@ -27,6 +27,15 @@ export interface ClothingItem {
   timesWorn: number;
   /** Local date the item was last worn, as "YYYY-MM-DD". Null if never worn. */
   lastWornDate: string | null;
+  /** Canvas-extracted colour names (web) or Vision labels (iOS). */
+  visionLabels: string[];
+  /** OCR text detected inside the photo (iOS Vision only; empty on web). */
+  visionText: string[];
+  /**
+   * 0 = unanalysed  1 = iOS Vision
+   * 4 = web canvas  5 = web analysed, no labels (don't retry)
+   */
+  visionVersion: number;
   createdAt: string;
   updatedAt: string;
 }

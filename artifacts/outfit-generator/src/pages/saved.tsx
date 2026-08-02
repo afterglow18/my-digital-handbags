@@ -7,8 +7,10 @@ import {
   useRemoveItemFromOutfit,
   getListOutfitsQueryKey,
 } from "@/hooks/useLocalOutfits";
+import { useListClothing } from "@/hooks/useLocalWardrobe";
 import type { ClothingItem } from "@/types/local";
-import { Trash2, Bookmark, Plus, Pencil, Check, X } from "lucide-react";
+import { Trash2, Bookmark, Plus, Pencil, Check, X, Search } from "lucide-react";
+import { search } from "@/lib/search";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -61,6 +63,7 @@ function ItemPhoto({
 
 export default function SavedPage() {
   const { data: outfits, isLoading } = useListOutfits();
+  const { data: allItems = [] } = useListClothing();
   const deleteOutfit = useDeleteOutfit();
   const renameOutfit = useRenameOutfit();
   const removeItemFromOutfit = useRemoveItemFromOutfit();
@@ -71,6 +74,8 @@ export default function SavedPage() {
   const [replacingSlot, setReplacingSlot] = useState<{ outfitId: string; category: SlotKey } | null>(null);
   const [addingExtra, setAddingExtra]     = useState<string | null>(null);
   const [detailsItem, setDetailsItem] = useState<ClothingItem | null>(null);
+  const [detailsFromSearch, setDetailsFromSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -157,9 +162,9 @@ export default function SavedPage() {
 
   return (
     <div className="min-h-full flex flex-col pt-8 px-4 pb-8 bg-secondary/10 relative">
-      <header className="mb-6">
+      <header className="mb-4">
         <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Lookbook</h1>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <p className="font-medium text-muted-foreground text-sm">Hall of fame.</p>
           {isFree && outfitCount > 0 && (
             <button
@@ -174,6 +179,28 @@ export default function SavedPage() {
                           }`}
             >
               {outfitCount}/{FREE_OUTFIT_LIMIT} saved
+            </button>
+          )}
+        </div>
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/35 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search…"
+            className="w-full border-2 border-black rounded-full pl-9 pr-9 py-2.5
+                       text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-primary
+                       placeholder:text-black/30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center
+                         rounded-full bg-black/10 hover:bg-black/20 transition-colors"
+            >
+              <X className="w-3 h-3 text-black/60" />
             </button>
           )}
         </div>
@@ -204,13 +231,130 @@ export default function SavedPage() {
         </motion.div>
       )}
 
-      {isLoading ? (
+      {/* ── Search results ────────────────────────────────────────────────────── */}
+      {searchQuery.trim() && (() => {
+        const results = search(searchQuery, allItems, outfits ?? []);
+        const hasResults = results.items.length > 0 || results.groups.length > 0;
+        return (
+          <div className="flex flex-col gap-6 pb-4">
+            {!hasResults ? (
+              <p className="text-center text-sm text-black/40 py-12 font-medium">
+                No results for "{searchQuery}"
+              </p>
+            ) : (
+              <>
+                {results.items.length > 0 && (
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-3">
+                      Items ({results.items.length})
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {results.items.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setDetailsFromSearch(true); setDetailsItem(item); }}
+                          className="flex items-center gap-3 bg-white border-2 border-black rounded-xl
+                                     px-3 py-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                                     active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
+                                     transition-all text-left"
+                        >
+                          <div
+                            className="w-11 h-11 border border-black/20 rounded overflow-hidden flex-shrink-0"
+                            style={{ background: "#FDECEF" }}
+                          >
+                            {item.imageObjectPath ? (
+                              <img
+                                src={getImageUrl(item.imageObjectPath)!}
+                                alt={item.name}
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-[8px] text-black/20">—</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">{item.name}</p>
+                            <p className="text-xs text-black/40 capitalize">
+                              {item.category?.replace(/-/g, " ")}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {results.groups.length > 0 && (
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/40 mb-3">
+                      Lookbooks ({results.groups.length})
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      {results.groups.map((outfit) => {
+                        const first3 = (outfit.items ?? []).slice(0, 3);
+                        return (
+                          <button
+                            key={outfit.id}
+                            onClick={() => setSearchQuery("")}
+                            className="flex items-center gap-3 bg-white border-2 border-black rounded-xl
+                                       px-3 py-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+                                       active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
+                                       transition-all text-left"
+                          >
+                            <div className="flex gap-1 flex-shrink-0">
+                              {Array.from({ length: 3 }).map((_, i) => {
+                                const it = first3[i];
+                                return (
+                                  <div
+                                    key={i}
+                                    className="w-9 h-9 border border-black/15 rounded overflow-hidden"
+                                    style={{ background: "#FDECEF" }}
+                                  >
+                                    {it?.imageObjectPath ? (
+                                      <img
+                                        src={getImageUrl(it.imageObjectPath)!}
+                                        alt={it.name}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <span className="text-[8px] text-black/20">—</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm uppercase tracking-tight truncate">
+                                {outfit.name}
+                              </p>
+                              <p className="text-[10px] text-black/40 mt-0.5">
+                                {outfit.items?.length ?? 0} item{(outfit.items?.length ?? 0) !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Normal outfit grid (hidden while searching) ───────────────────────── */}
+      {!searchQuery.trim() && isLoading ? (
         <div className="flex flex-col gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-52 bg-muted animate-pulse border-2 border-black rounded-xl" />
           ))}
         </div>
-      ) : outfits && outfits.length > 0 ? (
+      ) : !searchQuery.trim() && outfits && outfits.length > 0 ? (
         <div className="flex flex-col gap-6">
           {outfits.map((outfit) => {
             const bySlot = (outfit.items ?? []).reduce<Partial<Record<SlotKey, ClothingItem>>>(
@@ -448,7 +592,8 @@ export default function SavedPage() {
           <ItemDetailsSheet
             key={detailsItem.id}
             item={detailsItem}
-            onClose={() => setDetailsItem(null)}
+            showAddToLookbook={detailsFromSearch}
+            onClose={() => { setDetailsItem(null); setDetailsFromSearch(false); }}
           />
         )}
       </AnimatePresence>
