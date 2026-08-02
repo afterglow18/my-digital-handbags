@@ -17,7 +17,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { dbListClothing, dbUpdateClothing } from "@/lib/db";
 import { analyzeItemImage }              from "@/lib/visionAnalysis";
-import { toast }                         from "@/hooks/use-toast";
 
 // ── Version constants ─────────────────────────────────────────────────────────
 
@@ -106,11 +105,6 @@ async function runIndexer(invalidate: () => void): Promise<void> {
 
     if (queue.length === 0) return;
 
-    const { dismiss } = toast({
-      title: "Preparing photo search…",
-      description: `Analysing ${queue.length} photo${queue.length !== 1 ? "s" : ""}`,
-    });
-
     for (const item of queue) {
       try {
         const { labels, text, version } = await analyzeItem(item.imageObjectPath!, isNative);
@@ -122,7 +116,6 @@ async function runIndexer(invalidate: () => void): Promise<void> {
       await delay(350);
     }
 
-    dismiss();
     invalidate();
   } finally {
     _running = false;
