@@ -26,6 +26,7 @@ import {
   blobToDataUrl,
   dataUrlToBlob,
 } from "@/lib/backgroundRemoval";
+import { queueItemForIndexing } from "@/hooks/useVisionIndexer";
 
 // ── Wear-tracking helpers ─────────────────────────────────────────────────────
 
@@ -343,7 +344,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted, showAddToLookbook =
     updateItem.mutate(
       { id: item.id, data: { imageObjectPath: dataUrl } },
       {
-        onSuccess: () => invalidate(),
+        onSuccess: () => {
+          invalidate();
+          // Queue for immediate vision re-indexing so the new photo is
+          // searchable by colour in the same session without an app restart.
+          queueItemForIndexing(item.id, dataUrl, invalidate);
+        },
         onError: (err) => {
           console.error("Photo save failed, reverting:", err);
           setLocalImageUrl(null); // revert optimistic update on failure

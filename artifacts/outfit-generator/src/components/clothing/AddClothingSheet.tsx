@@ -3,6 +3,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { ClothingForm, ClothingFormData } from "./ClothingForm";
 import { useCreateClothingItem, getListClothingQueryKey } from "@/hooks/useLocalWardrobe";
 import { useQueryClient } from "@tanstack/react-query";
+import { queueItemForIndexing } from "@/hooks/useVisionIndexer";
 
 interface AddClothingSheetProps {
   open: boolean;
@@ -18,8 +19,15 @@ export function AddClothingSheet({ open, onOpenChange, defaultCategory }: AddClo
     createItem.mutate(
       { data: { ...data, imageObjectPath: data.imageObjectPath || undefined } },
       {
-        onSuccess: () => {
+        onSuccess: (newItem) => {
           queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+          // Queue for immediate vision indexing so the new item is searchable
+          // by colour in the same session without an app restart.
+          if (newItem.imageObjectPath) {
+            const invalidate = () =>
+              queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+            queueItemForIndexing(newItem.id, newItem.imageObjectPath, invalidate);
+          }
           onOpenChange(false);
         }
       }

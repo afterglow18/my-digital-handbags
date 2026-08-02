@@ -21,6 +21,7 @@ import { X, Loader2, Check } from "lucide-react";
 import { useCreateClothingItem, getListClothingQueryKey } from "@/hooks/useLocalWardrobe";
 import type { ClothingItem } from "@/types/local";
 import { useQueryClient } from "@tanstack/react-query";
+import { queueItemForIndexing } from "@/hooks/useVisionIndexer";
 import {
   removeBackground,
   blobToDataUrl,
@@ -231,6 +232,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
             onSuccess: (createdItem) => {
               queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
               if (onCreated) onCreated(createdItem);
+              // Queue for immediate vision indexing so the new photo is
+              // searchable by colour in the same session without an app restart.
+              const invalidate = () =>
+                queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+              queueItemForIndexing(createdItem.id, dataUrl, invalidate);
               resolve();
             },
             onError: reject,
