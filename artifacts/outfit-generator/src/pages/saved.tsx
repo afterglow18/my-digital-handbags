@@ -542,7 +542,7 @@ export default function SavedPage() {
             );
           })}
         </div>
-      ) : (
+      ) : !searchQuery.trim() ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl mt-8">
           <div className="w-14 h-14 bg-accent rounded-full flex items-center justify-center border-2 border-black mb-4">
             <Bookmark className="w-7 h-7" />
@@ -552,7 +552,7 @@ export default function SavedPage() {
             Head to your Handbags, spin the slots, and save looks you love.
           </p>
         </div>
-      )}
+      ) : null}
 
       {/* Upgrade sheet */}
       <AnimatePresence>
