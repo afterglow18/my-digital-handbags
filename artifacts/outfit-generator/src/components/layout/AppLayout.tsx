@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Sparkles, Bookmark, UserCircle } from "lucide-react";
+import { Sparkles, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGetWardrobeStats } from "@/hooks/useLocalWardrobe";
 
@@ -15,10 +15,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const wardrobeCount = stats?.total ?? undefined;
 
   const navItems = [
-    { href: "/",         label: "Handbags",  icon: null,        badge: wardrobeCount },
-    { href: "/generate", label: "Generate", icon: Sparkles },
-    { href: "/saved",    label: "Saved",    icon: Bookmark },
-    { href: "/backup",   label: "Account",  icon: UserCircle },
+    { href: "/",         label: "Handbags",  icon: null,        emoji: "👜", badge: wardrobeCount },
+    { href: "/generate", label: "Generate",  icon: Sparkles,    emoji: null },
+    { href: "/saved",    label: "Saved",     icon: null,        emoji: "👛" },
+    { href: "/backup",   label: "Account",   icon: UserCircle,  emoji: null },
   ];
 
   return (
@@ -58,7 +58,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                           strokeWidth={isActive ? 2.5 : 2}
                         />
                       ) : (
-                        <span className="text-xl leading-none select-none">👜</span>
+                        <span className="text-xl leading-none select-none">{item.emoji}</span>
                       )}
 
                       {/* Badge */}
