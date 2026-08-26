@@ -402,8 +402,8 @@ export default function SavedPage() {
                       onClick={() => startRename(outfit.id, outfit.name)}
                       className="flex-1 flex items-center gap-1.5 text-left group min-w-0"
                     >
-                      <h3 className="font-display font-bold text-lg uppercase tracking-tight truncate">{outfit.name}</h3>
-                      <Pencil className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      <h3 className="font-display font-bold text-lg uppercase tracking-tight truncate text-[#F5EDE3]">{outfit.name}</h3>
+                      <Pencil className="w-3 h-3 shrink-0 text-[#F5EDE3] opacity-0 group-hover:opacity-50 transition-opacity" />
                     </button>
                   )}
                   <button
